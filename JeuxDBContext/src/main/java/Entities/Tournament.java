@@ -13,7 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "Tournament")
+@Table(
+        name = "Tournament",
+        indexes = {
+                @jakarta.persistence.Index(name = "idx_tournament_league_id", columnList = "league_id"),
+                @jakarta.persistence.Index(name = "idx_tournament_st_year", columnList = "st_year"),
+                @jakarta.persistence.Index(name = "idx_tournament_fn_year", columnList = "fn_year"),
+                @jakarta.persistence.Index(name = "idx_tournament_name", columnList = "name")
+        }
+)
 // Tournament table entity
 public class Tournament {
     @Id
@@ -21,10 +29,6 @@ public class Tournament {
     @Column(name = "id")
     // Tournament primary key
     private long Id;
-
-    @Column(name = "unique_id", length = 64, nullable = false)
-    // Tournament unique external id
-    private String UniqueId;
 
     @Column(name = "name", length = 128, nullable = false)
     // Tournament display name
@@ -39,7 +43,11 @@ public class Tournament {
     private Integer FnYear;
 
     @ManyToOne
-    @JoinColumn(name = "league_id", nullable = false)
+    @JoinColumn(
+            name = "league_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_tournament_league_id")
+    )
     // Tournament league
     private League League;
 
@@ -60,14 +68,6 @@ public class Tournament {
 
     public void setId(long id) {
         this.Id = id;
-    }
-
-    public String getUniqueId() {
-        return UniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.UniqueId = uniqueId;
     }
 
     public String getName() {

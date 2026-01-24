@@ -13,7 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "Stage")
+@Table(
+        name = "Stage",
+        indexes = {
+                @jakarta.persistence.Index(name = "idx_stage_league_id", columnList = "league_id"),
+                @jakarta.persistence.Index(name = "idx_stage_tournament_id", columnList = "tournament_id"),
+                @jakarta.persistence.Index(name = "idx_stage_order", columnList = "order"),
+                @jakarta.persistence.Index(name = "idx_stage_name", columnList = "name")
+  
+        }
+)
 // Stage table entity
 public class Stage {
     @Id
@@ -21,10 +30,6 @@ public class Stage {
     @Column(name = "id")
     // Stage primary key
     private long Id;
-
-    @Column(name = "unique_id", length = 64, nullable = false)
-    // Stage unique external id
-    private String UniqueId;
 
     @Column(name = "name", length = 128, nullable = false)
     // Stage display name
@@ -35,12 +40,20 @@ public class Stage {
     private int Order;
 
     @ManyToOne
-    @JoinColumn(name = "league_id", nullable = false)
+    @JoinColumn(
+            name = "league_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_league_id")
+    )
     // Stage league
     private League League;
 
     @ManyToOne
-    @JoinColumn(name = "tournament_id", nullable = false)
+    @JoinColumn(
+            name = "tournament_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_tournament_id")
+    )
     // Stage tournament
     private Tournament Tournament;
 
@@ -57,14 +70,6 @@ public class Stage {
 
     public void setId(long id) {
         this.Id = id;
-    }
-
-    public String getUniqueId() {
-        return UniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.UniqueId = uniqueId;
     }
 
     public String getName() {

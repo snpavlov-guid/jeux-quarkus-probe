@@ -12,7 +12,22 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "Match")
+@Table(
+        name = "Match",
+        indexes = {
+                @jakarta.persistence.Index(name = "idx_match_league_id", columnList = "league_id"),
+                @jakarta.persistence.Index(name = "idx_match_tournament_id", columnList = "tournament_id"),
+                @jakarta.persistence.Index(name = "idx_match_stage_id", columnList = "stage_id"),
+                @jakarta.persistence.Index(name = "idx_match_h_team_id", columnList = "h_team_id"),
+                @jakarta.persistence.Index(name = "idx_match_g_team_id", columnList = "g_team_id"),
+                @jakarta.persistence.Index(name = "idx_match_tour", columnList = "tour"),
+                @jakarta.persistence.Index(name = "idx_match_round", columnList = "round"),
+                @jakarta.persistence.Index(name = "idx_match_date", columnList = "date"),
+                @jakarta.persistence.Index(name = "idx_match_h_score", columnList = "h_score"),
+                @jakarta.persistence.Index(name = "idx_match_g_score", columnList = "g_score"),
+               
+        }
+)
 // Match table entity
 public class Match {
     @Id
@@ -50,27 +65,47 @@ public class Match {
     private String Stadium;
 
     @ManyToOne
-    @JoinColumn(name = "league_id", nullable = false)
+    @JoinColumn(
+            name = "league_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_league_id")
+    )
     // Match league
     private League League;
 
     @ManyToOne
-    @JoinColumn(name = "tournament_id", nullable = false)
+    @JoinColumn(
+            name = "tournament_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_tournament_id")
+    )
     // Match tournament
     private Tournament Tournament;
 
     @ManyToOne
-    @JoinColumn(name = "stage_id", nullable = false)
+    @JoinColumn(
+            name = "stage_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_stage_id")
+    )
     // Match stage
     private Stage Stage;
 
     @OneToOne
-    @JoinColumn(name = "h_team_id", nullable = false)
+    @JoinColumn(
+            name = "h_team_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_h_team_id")
+    )
     // Home team
     private Team HTeam;
 
     @OneToOne
-    @JoinColumn(name = "g_team_id", nullable = false)
+    @JoinColumn(
+            name = "g_team_id",
+            nullable = false,
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_g_team_id")
+    )
     // Guest team
     private Team GTeam;
 

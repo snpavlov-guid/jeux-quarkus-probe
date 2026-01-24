@@ -36,6 +36,8 @@ public class DatabaseContextTest {
                 .setProperty("hibernate.connection.url", dbUrl)
                 .setProperty("hibernate.connection.username", dbUser)
                 .setProperty("hibernate.connection.password", dbPassword)
+                .setProperty("hibernate.default_schema", "football")
+                .setProperty("hibernate.globally_quoted_identifiers", "true")
                 .setProperty("hibernate.hbm2ddl.auto", "create");
 
         SessionFactory sessionFactory = configuration.buildSessionFactory();

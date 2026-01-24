@@ -11,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "League")
+@Table(
+        name = "League",
+        indexes = {
+                @jakarta.persistence.Index(name = "idx_league_name", columnList = "name")
+        }
+)
 // League table entity
 public class League {
     @Id
@@ -19,10 +24,6 @@ public class League {
     @Column(name = "id")
     // League primary key
     private long Id;
-
-    @Column(name = "unique_id", length = 64, nullable = false)
-    // League unique external id
-    private String UniqueId;
 
     @Column(name = "name", length = 128, nullable = false)
     // League display name
@@ -49,14 +50,6 @@ public class League {
 
     public void setId(long id) {
         this.Id = id;
-    }
-
-    public String getUniqueId() {
-        return UniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.UniqueId = uniqueId;
     }
 
     public String getName() {

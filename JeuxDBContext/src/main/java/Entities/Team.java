@@ -8,7 +8,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "Team")
+@Table(
+        name = "Team",
+        indexes = {
+            @jakarta.persistence.Index(name = "idx_team_name", columnList = "name"),
+            @jakarta.persistence.Index(name = "idx_team_short_name", columnList = "short_name"),
+            @jakarta.persistence.Index(name = "idx_team_city", columnList = "city"),
+
+        }
+)
 // Team table entity
 public class Team {
     @Id
@@ -16,10 +24,6 @@ public class Team {
     @Column(name = "id")
     // Team primary key
     private long Id;
-
-    @Column(name = "unique_id", length = 64, nullable = false)
-    // Team unique external id
-    private String UniqueId;
 
     @Column(name = "name", length = 128, nullable = false)
     // Team display name
@@ -46,14 +50,6 @@ public class Team {
 
     public void setId(long id) {
         this.Id = id;
-    }
-
-    public String getUniqueId() {
-        return UniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.UniqueId = uniqueId;
     }
 
     public String getName() {
