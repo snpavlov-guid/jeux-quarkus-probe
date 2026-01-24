@@ -10,5 +10,6 @@
 
     <modules>
         <module>JeuxDBContext</module>
+        <module>JeuxDBContextTest</module>
     </modules>
 </project>
