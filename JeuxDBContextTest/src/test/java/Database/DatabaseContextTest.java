@@ -10,6 +10,9 @@ import org.hibernate.cfg.Configuration;
 import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class DatabaseContextTest {
@@ -40,27 +43,31 @@ public class DatabaseContextTest {
     }
 
     private Properties loadDatabaseProperties() {
+        Path configPath = Paths.get("config.properties");
+        if (!Files.exists(configPath)) {
+            configPath = Paths.get("JeuxDBContextTest", "config.properties");
+        }
+        if (!Files.exists(configPath)) {
+            throw new IllegalStateException("config.properties not found in module root");
+        }
         Properties properties = new Properties();
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("database.properties")) {
-            if (inputStream == null) {
-                throw new IllegalStateException("database.properties not found in test resources");
-            }
+        try (InputStream inputStream = Files.newInputStream(configPath)) {
             properties.load(inputStream);
         } catch (IOException exception) {
-            throw new IllegalStateException("Failed to load database.properties", exception);
+            throw new IllegalStateException("Failed to load config.properties", exception);
         }
         return properties;
     }
 
     private void validateConnectionParams(String dbUrl, String dbUser, String dbPassword) {
         if (dbUrl == null || dbUrl.isBlank()) {
-            throw new IllegalStateException("db.url is missing or blank in database.properties");
+            throw new IllegalStateException("db.url is missing or blank in config.properties");
         }
         if (dbUser == null || dbUser.isBlank()) {
-            throw new IllegalStateException("db.user is missing or blank in database.properties");
+            throw new IllegalStateException("db.user is missing or blank in config.properties");
         }
         if (dbPassword == null || dbPassword.isBlank()) {
-            throw new IllegalStateException("db.password is missing or blank in database.properties");
+            throw new IllegalStateException("db.password is missing or blank in config.properties");
         }
     }
 }
