@@ -64,11 +64,33 @@ public class Match {
     // Match stadium (nullable)
     private String Stadium;
 
+    @Column(name = "league_id", nullable = false)
+    // Match league id
+    private Long LeagueId;
+
+    @Column(name = "tournament_id", nullable = false)
+    // Match tournament id
+    private Long TournamentId;
+
+    @Column(name = "stage_id", nullable = false)
+    // Match stage id
+    private Long StageId;
+
+    @Column(name = "h_team_id", nullable = false)
+    // Match home team id
+    private Long HTeamId;
+
+    @Column(name = "g_team_id", nullable = false)
+    // Match guest team id
+    private Long GTeamId;
+
     @ManyToOne
     @JoinColumn(
             name = "league_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_league_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_league_id"),
+            insertable = false,
+            updatable = false
     )
     // Match league
     private League League;
@@ -77,7 +99,9 @@ public class Match {
     @JoinColumn(
             name = "tournament_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_tournament_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_tournament_id"),
+            insertable = false,
+            updatable = false
     )
     // Match tournament
     private Tournament Tournament;
@@ -86,7 +110,9 @@ public class Match {
     @JoinColumn(
             name = "stage_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_stage_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_stage_id"),
+            insertable = false,
+            updatable = false
     )
     // Match stage
     private Stage Stage;
@@ -95,7 +121,9 @@ public class Match {
     @JoinColumn(
             name = "h_team_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_h_team_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_h_team_id"),
+            insertable = false,
+            updatable = false
     )
     // Home team
     private Team HTeam;
@@ -104,7 +132,9 @@ public class Match {
     @JoinColumn(
             name = "g_team_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_g_team_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_match_g_team_id"),
+            insertable = false,
+            updatable = false
     )
     // Guest team
     private Team GTeam;
@@ -176,12 +206,58 @@ public class Match {
         this.Stadium = stadium;
     }
 
+    public Long getLeagueId() {
+        return LeagueId;
+    }
+
+    public void setLeagueId(Long leagueId) {
+        this.LeagueId = leagueId;
+        this.League = null;
+    }
+
+    public Long getTournamentId() {
+        return TournamentId;
+    }
+
+    public void setTournamentId(Long tournamentId) {
+        this.TournamentId = tournamentId;
+        this.Tournament = null;
+    }
+
+    public Long getStageId() {
+        return StageId;
+    }
+
+    public void setStageId(Long stageId) {
+        this.StageId = stageId;
+        this.Stage = null;
+    }
+
+    public Long getHTeamId() {
+        return HTeamId;
+    }
+
+    public void setHTeamId(Long hTeamId) {
+        this.HTeamId = hTeamId;
+        this.HTeam = null;
+    }
+
+    public Long getGTeamId() {
+        return GTeamId;
+    }
+
+    public void setGTeamId(Long gTeamId) {
+        this.GTeamId = gTeamId;
+        this.GTeam = null;
+    }
+
     public League getLeague() {
         return League;
     }
 
     public void setLeague(League league) {
         this.League = league;
+        this.LeagueId = league == null ? null : league.getId();
     }
 
     public Tournament getTournament() {
@@ -190,6 +266,7 @@ public class Match {
 
     public void setTournament(Tournament tournament) {
         this.Tournament = tournament;
+        this.TournamentId = tournament == null ? null : tournament.getId();
     }
 
     public Stage getStage() {
@@ -198,6 +275,7 @@ public class Match {
 
     public void setStage(Stage stage) {
         this.Stage = stage;
+        this.StageId = stage == null ? null : stage.getId();
     }
 
     public Team getHTeam() {
@@ -206,6 +284,7 @@ public class Match {
 
     public void setHTeam(Team hTeam) {
         this.HTeam = hTeam;
+        this.HTeamId = hTeam == null ? null : hTeam.getId();
     }
 
     public Team getGTeam() {
@@ -214,5 +293,6 @@ public class Match {
 
     public void setGTeam(Team gTeam) {
         this.GTeam = gTeam;
+        this.GTeamId = gTeam == null ? null : gTeam.getId();
     }
 }

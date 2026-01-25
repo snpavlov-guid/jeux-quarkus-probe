@@ -39,11 +39,21 @@ public class Stage {
     // Stage ordering number
     private int Order;
 
+    @Column(name = "league_id", nullable = false)
+    // Stage league id
+    private Long LeagueId;
+
+    @Column(name = "tournament_id", nullable = false)
+    // Stage tournament id
+    private Long TournamentId;
+
     @ManyToOne
     @JoinColumn(
             name = "league_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_league_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_league_id"),
+            insertable = false,
+            updatable = false
     )
     // Stage league
     private League League;
@@ -52,7 +62,9 @@ public class Stage {
     @JoinColumn(
             name = "tournament_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_tournament_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_stage_tournament_id"),
+            insertable = false,
+            updatable = false
     )
     // Stage tournament
     private Tournament Tournament;
@@ -88,12 +100,31 @@ public class Stage {
         this.Order = order;
     }
 
+    public Long getLeagueId() {
+        return LeagueId;
+    }
+
+    public void setLeagueId(Long leagueId) {
+        this.LeagueId = leagueId;
+        this.League = null;
+    }
+
+    public Long getTournamentId() {
+        return TournamentId;
+    }
+
+    public void setTournamentId(Long tournamentId) {
+        this.TournamentId = tournamentId;
+        this.Tournament = null;
+    }
+
     public League getLeague() {
         return League;
     }
 
     public void setLeague(League league) {
         this.League = league;
+        this.LeagueId = league == null ? null : league.getId();
     }
 
     public Tournament getTournament() {
@@ -102,6 +133,7 @@ public class Stage {
 
     public void setTournament(Tournament tournament) {
         this.Tournament = tournament;
+        this.TournamentId = tournament == null ? null : tournament.getId();
     }
 
     public List<Match> getMatches() {
