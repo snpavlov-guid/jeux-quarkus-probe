@@ -133,6 +133,41 @@ public class DatabaseContextTest {
         }
     }
 
+    @Test
+    void UploadAllTournamentData() {
+        Properties properties = loadDatabaseProperties();
+
+        String dbUrl = properties.getProperty("db.url");
+        String dbUser = properties.getProperty("db.user");
+        String dbPassword = properties.getProperty("db.password");
+        validateConnectionParams(dbUrl, dbUser, dbPassword);
+
+        String dataRoot = buildDataRoot(properties);
+        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
+
+        SessionFactory sessionFactory = configuration.buildSessionFactory();
+        Session session = sessionFactory.openSession();
+
+        try {
+            MatchUploadService service = new MatchUploadService(session);
+            int processed = 0;
+            try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(dataRoot), "*.json")) {
+                for (Path file : stream) {
+                    boolean result = service.UploadTournament(1L, "Чемпионат России", file.toString());
+                    Assertions.assertTrue(result, "UploadTournament should succeed for " + file.getFileName());
+                    processed++;
+                }
+            } catch (IOException exception) {
+                throw new IllegalStateException("Failed to enumerate json files in " + dataRoot, exception);
+            }
+
+            Assertions.assertTrue(processed > 0, "No json files found in " + dataRoot);
+        } finally {
+            session.close();
+            sessionFactory.close();
+        }
+    }
+
     private Properties loadDatabaseProperties() {
         Path configPath = Paths.get("config.properties");
         if (!Files.exists(configPath)) {
