@@ -6,7 +6,6 @@ import Entities.Stage;
 import Entities.Team;
 import Entities.Tournament;
 import Services.MatchUploadService;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -93,11 +92,40 @@ public class DatabaseContextTest {
 
         try {
             MatchUploadService service = new MatchUploadService(session);
-            Tournament upserted = service.UpsertTournament(tournament);
+            Tournament upserted = service.UpgradeTournament(tournament);
             Assertions.assertNotNull(upserted, "UpsertTournament should return a Tournament");
             session.getTransaction().commit();
         } catch (RuntimeException exception) {
             session.getTransaction().rollback();
+            throw exception;
+        } finally {
+            session.close();
+            sessionFactory.close();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Champ_1992.json"})
+    void UploadTournamentTest(String turnirDataFile) {
+        Properties properties = loadDatabaseProperties();
+
+        String dbUrl = properties.getProperty("db.url");
+        String dbUser = properties.getProperty("db.user");
+        String dbPassword = properties.getProperty("db.password");
+        validateConnectionParams(dbUrl, dbUser, dbPassword);
+
+        String dataRoot = buildDataRoot(properties);
+        String fullPath = Paths.get(dataRoot, turnirDataFile).toString();
+        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
+
+        SessionFactory sessionFactory = configuration.buildSessionFactory();
+        Session session = sessionFactory.openSession();
+
+        try {
+            MatchUploadService service = new MatchUploadService(session);
+            boolean result = service.UploadTournament(1L, "Чемпионат России", fullPath);
+            Assertions.assertTrue(result, "UploadTournament should succeed");
+        } catch (RuntimeException exception) {
             throw exception;
         } finally {
             session.close();
