@@ -11,6 +11,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(
@@ -54,6 +56,7 @@ public class Tournament {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Tournament league
     private League League;
 

@@ -11,6 +11,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(
@@ -55,6 +57,7 @@ public class Stage {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Stage league
     private League League;
 
@@ -66,10 +69,12 @@ public class Stage {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Stage tournament
     private Tournament Tournament;
 
     @OneToMany(mappedBy = "Stage")
+    
     // Stage matches
     private List<Match> Matches = new ArrayList<>();
 

@@ -10,6 +10,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(
@@ -92,6 +94,7 @@ public class Match {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Match league
     private League League;
 
@@ -103,6 +106,7 @@ public class Match {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Match tournament
     private Tournament Tournament;
 
@@ -114,6 +118,7 @@ public class Match {
             insertable = false,
             updatable = false
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     // Match stage
     private Stage Stage;
 
