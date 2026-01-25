@@ -42,11 +42,17 @@ public class Tournament {
     // Tournament finish year (nullable)
     private Integer FnYear;
 
+    @Column(name = "league_id", nullable = false)
+    // Tournament league id
+    private Long LeagueId;
+
     @ManyToOne
     @JoinColumn(
             name = "league_id",
             nullable = false,
-            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_tournament_league_id")
+            foreignKey = @jakarta.persistence.ForeignKey(name = "fk_tournament_league_id"),
+            insertable = false,
+            updatable = false
     )
     // Tournament league
     private League League;
@@ -94,6 +100,15 @@ public class Tournament {
         this.FnYear = fnYear;
     }
 
+    public Long getLeagueId() {
+        return LeagueId;
+    }
+
+    public void setLeagueId(Long leagueId) {
+        this.LeagueId = leagueId;
+        this.League = null;
+    }
+
     public String getSeasonLabel() {
         if (FnYear == null) {
             return String.valueOf(StYear);
@@ -107,6 +122,7 @@ public class Tournament {
 
     public void setLeague(League league) {
         this.League = league;
+        this.LeagueId = league == null ? null : league.getId();
     }
 
     public List<Stage> getStages() {
