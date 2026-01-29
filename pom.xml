@@ -11,5 +11,6 @@
     <modules>
         <module>JeuxDBContext</module>
         <module>JeuxDBContextTest</module>
+        <module>JeuxWebAPI</module>
     </modules>
 </project>
