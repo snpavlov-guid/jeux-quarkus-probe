@@ -7,17 +7,27 @@ public class TournamentDto {
     private Integer fnYear;
     private Long leagueId;
     private String seasonLabel;
+    private java.util.List<StageDto> stages;
 
     public TournamentDto() {
     }
 
-    public TournamentDto(long id, String name, int stYear, Integer fnYear, Long leagueId, String seasonLabel) {
+    public TournamentDto(
+            long id,
+            String name,
+            int stYear,
+            Integer fnYear,
+            Long leagueId,
+            String seasonLabel,
+            java.util.List<StageDto> stages
+    ) {
         this.id = id;
         this.name = name;
         this.stYear = stYear;
         this.fnYear = fnYear;
         this.leagueId = leagueId;
         this.seasonLabel = seasonLabel;
+        this.stages = stages;
     }
 
     public long getId() {
@@ -66,5 +76,13 @@ public class TournamentDto {
 
     public void setSeasonLabel(String seasonLabel) {
         this.seasonLabel = seasonLabel;
+    }
+
+    public java.util.List<StageDto> getStages() {
+        return stages;
+    }
+
+    public void setStages(java.util.List<StageDto> stages) {
+        this.stages = stages;
     }
 }

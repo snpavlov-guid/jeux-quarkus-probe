@@ -1,6 +1,8 @@
 package com.jeuxwebapi.resources;
 
+import Entities.Stage;
 import Entities.Tournament;
+import com.jeuxwebapi.models.StageDto;
 import com.jeuxwebapi.models.TournamentDto;
 import com.jeuxwebapi.util.QueryUtils;
 import jakarta.inject.Inject;
@@ -18,6 +20,8 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Path("/tournaments")
 @Produces(MediaType.APPLICATION_JSON)
@@ -57,20 +61,54 @@ public class TournamentResource {
         TypedQuery<Tournament> query = entityManager.createQuery(cq);
         QueryUtils.applyPaging(query, skip, size);
 
-        return query.getResultList()
-                .stream()
-                .map(TournamentResource::toDto)
+        List<Tournament> tournaments = query.getResultList();
+        Map<Long, List<StageDto>> stagesByTournament = loadStagesByTournament(tournaments);
+
+        return tournaments.stream()
+                .map(tournament -> toDto(tournament, stagesByTournament))
                 .toList();
     }
 
-    private static TournamentDto toDto(Tournament tournament) {
+    private Map<Long, List<StageDto>> loadStagesByTournament(List<Tournament> tournaments) {
+        if (tournaments.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> ids = tournaments.stream()
+                .map(Tournament::getId)
+                .toList();
+
+        TypedQuery<Stage> stageQuery = entityManager.createQuery(
+                "from Stage s where s.TournamentId in :ids order by s.Order asc, s.Id asc",
+                Stage.class
+        );
+        stageQuery.setParameter("ids", ids);
+
+        return stageQuery.getResultList().stream()
+                .collect(Collectors.groupingBy(
+                        Stage::getTournamentId,
+                        Collectors.mapping(TournamentResource::toStageDto, Collectors.toList())
+                ));
+    }
+
+    private static TournamentDto toDto(Tournament tournament, Map<Long, List<StageDto>> stagesByTournament) {
         return new TournamentDto(
                 tournament.getId(),
                 tournament.getName(),
                 tournament.getStYear(),
                 tournament.getFnYear(),
                 tournament.getLeagueId(),
-                tournament.getSeasonLabel()
+                tournament.getSeasonLabel(),
+                stagesByTournament.getOrDefault(tournament.getId(), List.of())
+        );
+    }
+
+    private static StageDto toStageDto(Stage stage) {
+        return new StageDto(
+                stage.getId(),
+                stage.getName(),
+                stage.getOrder(),
+                stage.getLeagueId(),
+                stage.getTournamentId()
         );
     }
 }
