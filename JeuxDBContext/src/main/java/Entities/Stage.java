@@ -16,7 +16,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(
-        name = "Stage",
+        name = "\"Stage\"",
         indexes = {
                 @jakarta.persistence.Index(name = "idx_stage_league_id", columnList = "league_id"),
                 @jakarta.persistence.Index(name = "idx_stage_tournament_id", columnList = "tournament_id"),

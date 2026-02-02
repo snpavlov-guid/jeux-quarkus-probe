@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(
-        name = "Team",
+        name = "\"Team\"",
         indexes = {
             @jakarta.persistence.Index(name = "idx_team_name", columnList = "name"),
             @jakarta.persistence.Index(name = "idx_team_short_name", columnList = "short_name"),

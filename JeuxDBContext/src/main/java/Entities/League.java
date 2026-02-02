@@ -12,7 +12,7 @@ import java.util.List;
 
 @Entity
 @Table(
-        name = "League",
+        name = "\"League\"",
         indexes = {
                 @jakarta.persistence.Index(name = "idx_league_name", columnList = "name")
         }
