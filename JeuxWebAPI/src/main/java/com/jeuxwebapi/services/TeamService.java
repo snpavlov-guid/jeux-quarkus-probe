@@ -1,7 +1,11 @@
 package com.jeuxwebapi.services;
 
 import Entities.Team;
+import com.jeuxwebapi.models.TeamCreateDto;
 import com.jeuxwebapi.models.TeamDto;
+import com.jeuxwebapi.models.TeamUpdateDto;
+import com.jeuxwebapi.results.ServiceDataResult;
+import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -19,15 +23,12 @@ public class TeamService {
         this.entityManager = entityManager;
     }
 
-    public List<TeamDto> findTeams(String name, Integer skip, Integer size, String order) {
+    public ServiceListResult<TeamDto> findTeams(String name, Integer skip, Integer size, String order) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Team> cq = cb.createQuery(Team.class);
         Root<Team> root = cq.from(Team.class);
 
-        List<Predicate> predicates = new ArrayList<>();
-        if (name != null && !name.isBlank()) {
-            predicates.add(cb.like(cb.lower(root.get("Name")), "%" + name.toLowerCase() + "%"));
-        }
+        List<Predicate> predicates = buildPredicates(cb, root, name);
         if (!predicates.isEmpty()) {
             cq.where(predicates.toArray(new Predicate[0]));
         }
@@ -41,10 +42,100 @@ public class TeamService {
         TypedQuery<Team> query = entityManager.createQuery(cq);
         QueryUtils.applyPaging(query, skip, size);
 
-        return query.getResultList()
+        List<TeamDto> items = query.getResultList()
                 .stream()
                 .map(TeamService::toDto)
                 .toList();
+
+        int total = countTeams(name);
+        ServiceListResult<TeamDto> result = new ServiceListResult<>();
+        result.setResult(true);
+        result.setItems(items);
+        result.setTotal(total);
+        return result;
+    }
+
+    public ServiceDataResult<TeamDto> findTeamById(long id) {
+        Team team = entityManager.find(Team.class, id);
+        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+        if (team == null) {
+            result.setResult(false);
+            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
+            return result;
+        }
+        result.setResult(true);
+        result.setData(toDto(team));
+        return result;
+    }
+
+    public ServiceDataResult<TeamDto> createTeam(TeamCreateDto createDto) {
+        Team team = new Team();
+        team.setName(createDto.getName());
+        team.setShortName(createDto.getShortName());
+        team.setCity(createDto.getCity());
+        team.setLogoUrl(createDto.getLogoUrl());
+        entityManager.persist(team);
+        entityManager.flush();
+
+        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+        result.setResult(true);
+        result.setData(toDto(team));
+        return result;
+    }
+
+    public ServiceDataResult<TeamDto> updateTeam(TeamUpdateDto updateDto) {
+        Team team = entityManager.find(Team.class, updateDto.getId());
+        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+        if (team == null) {
+            result.setResult(false);
+            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", updateDto.getId()));
+            return result;
+        }
+        team.setName(updateDto.getName());
+        team.setShortName(updateDto.getShortName());
+        team.setCity(updateDto.getCity());
+        team.setLogoUrl(updateDto.getLogoUrl());
+        entityManager.flush();
+        result.setResult(true);
+        result.setData(toDto(team));
+        return result;
+    }
+
+    public ServiceDataResult<TeamDto> deleteTeam(long id) {
+        Team team = entityManager.find(Team.class, id);
+        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+        if (team == null) {
+            result.setResult(false);
+            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
+            return result;
+        }
+        TeamDto dto = toDto(team);
+        entityManager.remove(team);
+        entityManager.flush();
+        result.setResult(true);
+        result.setData(dto);
+        return result;
+    }
+
+    private int countTeams(String name) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Team> root = cq.from(Team.class);
+        List<Predicate> predicates = buildPredicates(cb, root, name);
+        cq.select(cb.count(root));
+        if (!predicates.isEmpty()) {
+            cq.where(predicates.toArray(new Predicate[0]));
+        }
+        Long total = entityManager.createQuery(cq).getSingleResult();
+        return total == null ? 0 : total.intValue();
+    }
+
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Team> root, String name) {
+        List<Predicate> predicates = new ArrayList<>();
+        if (name != null && !name.isBlank()) {
+            predicates.add(cb.like(cb.lower(root.get("Name")), "%" + name.toLowerCase() + "%"));
+        }
+        return predicates;
     }
 
     private static TeamDto toDto(Team team) {

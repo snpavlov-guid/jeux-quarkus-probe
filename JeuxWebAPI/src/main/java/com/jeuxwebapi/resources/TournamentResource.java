@@ -1,16 +1,25 @@
 package com.jeuxwebapi.resources;
 
+import com.jeuxwebapi.models.TournamentCreateDto;
 import com.jeuxwebapi.models.TournamentDto;
+import com.jeuxwebapi.models.TournamentUpdateDto;
+import com.jeuxwebapi.results.ServiceDataResult;
+import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TournamentService;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import java.util.List;
 
 @Path("/tournaments")
 @Produces(MediaType.APPLICATION_JSON)
@@ -19,13 +28,93 @@ public class TournamentResource {
     @Inject
     EntityManager entityManager;
 
+    @ConfigProperty(name = "RFLeagueId")
+    long rfLeagueId;
+
     @GET
-    public List<TournamentDto> getTournaments(
+    public ServiceListResult<TournamentDto> getTournaments(
+            @QueryParam("leagueId") Long leagueId,
             @QueryParam("season") Integer season,
             @QueryParam("skip") Integer skip,
             @QueryParam("size") Integer size,
             @QueryParam("order") String order
     ) {
-        return new TournamentService(entityManager).findTournaments(season, skip, size, order);
+        return new TournamentService(entityManager).findTournaments(leagueId, season, skip, size, order);
+    }
+
+    @GET
+    @Path("/rpl")
+    public ServiceListResult<TournamentDto> getRPLTournaments(
+            @QueryParam("season") Integer season,
+            @QueryParam("skip") Integer skip,
+            @QueryParam("size") Integer size,
+            @QueryParam("order") String order
+    ) {
+        return new TournamentService(entityManager).findTournaments(rfLeagueId, season, skip, size, order);
+    }
+
+    @GET
+    @Path("/{id}")
+    public ServiceDataResult<TournamentDto> getTournamentById(@PathParam("id") long id) {
+        return new TournamentService(entityManager).findTournamentById(id);
+    }
+
+    @POST
+    @Transactional
+    public ServiceDataResult<TournamentDto> createTournament(TournamentCreateDto createDto) {
+        return new TournamentService(entityManager).createTournament(createDto);
+    }
+
+    @POST
+    @Path("/create")
+    @Transactional
+    public ServiceDataResult<TournamentDto> createTournamentAlt(TournamentCreateDto createDto) {
+        return new TournamentService(entityManager).createTournament(createDto);
+    }
+
+    @PUT
+    @Transactional
+    public ServiceDataResult<TournamentDto> updateTournament(TournamentUpdateDto updateDto) {
+        return new TournamentService(entityManager).updateTournament(updateDto);
+    }
+
+    @POST
+    @Path("/update/{id}")
+    @Transactional
+    public ServiceDataResult<TournamentDto> updateTournamentAlt(@PathParam("id") long id, TournamentUpdateDto updateDto) {
+        ServiceDataResult<TournamentDto> idMismatch = validateUpdateId(id, updateDto);
+        if (idMismatch != null) {
+            return idMismatch;
+        }
+        return new TournamentService(entityManager).updateTournament(updateDto);
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    public ServiceDataResult<TournamentDto> deleteTournament(@PathParam("id") long id) {
+        return new TournamentService(entityManager).deleteTournament(id);
+    }
+
+    @POST
+    @Path("/delete/{id}")
+    @Transactional
+    public ServiceDataResult<TournamentDto> deleteTournamentAlt(@PathParam("id") long id) {
+        return new TournamentService(entityManager).deleteTournament(id);
+    }
+
+    private ServiceDataResult<TournamentDto> validateUpdateId(long id, TournamentUpdateDto updateDto) {
+        if (updateDto == null || updateDto.getId() != id) {
+            ServiceDataResult<TournamentDto> result = new ServiceDataResult<>();
+            result.setResult(false);
+            long dtoId = updateDto == null ? 0L : updateDto.getId();
+            result.setMessage(String.format(
+                    "Несовпадение идентификатора: id в пути=%d, id в теле=%d.",
+                    id,
+                    dtoId
+            ));
+            return result;
+        }
+        return null;
     }
 }
