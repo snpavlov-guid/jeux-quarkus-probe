@@ -1,12 +1,15 @@
 package com.jeuxwebapi.resources;
 
+import com.jeuxwebapi.auth.AppRoles;
 import com.jeuxwebapi.models.TournamentCreateDto;
 import com.jeuxwebapi.models.TournamentDto;
 import com.jeuxwebapi.models.TournamentUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TournamentService;
+import io.quarkus.security.Authenticated;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -23,6 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/tournaments")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class TournamentResource {
     @Inject
     TournamentService tournamentService;
@@ -60,6 +64,7 @@ public class TournamentResource {
 
     @POST
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> createTournament(TournamentCreateDto createDto) {
         return tournamentService.createTournament(createDto);
     }
@@ -67,12 +72,14 @@ public class TournamentResource {
     @POST
     @Path("/create")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> createTournamentAlt(TournamentCreateDto createDto) {
         return tournamentService.createTournament(createDto);
     }
 
     @PUT
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> updateTournament(TournamentUpdateDto updateDto) {
         return tournamentService.updateTournament(updateDto);
     }
@@ -80,6 +87,7 @@ public class TournamentResource {
     @POST
     @Path("/update/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> updateTournamentAlt(@PathParam("id") long id, TournamentUpdateDto updateDto) {
         ServiceDataResult<TournamentDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
@@ -91,6 +99,7 @@ public class TournamentResource {
     @DELETE
     @Path("/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> deleteTournament(@PathParam("id") long id) {
         return tournamentService.deleteTournament(id);
     }
@@ -98,10 +107,10 @@ public class TournamentResource {
     @POST
     @Path("/delete/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TournamentDto> deleteTournamentAlt(@PathParam("id") long id) {
         return tournamentService.deleteTournament(id);
     }
-
     private ServiceDataResult<TournamentDto> validateUpdateId(long id, TournamentUpdateDto updateDto) {
         if (updateDto == null || updateDto.getId() != id) {
             ServiceDataResult<TournamentDto> result = new ServiceDataResult<>();

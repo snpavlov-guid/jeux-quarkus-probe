@@ -1,11 +1,14 @@
 package com.jeuxwebapi.resources;
 
+import com.jeuxwebapi.auth.AppRoles;
 import com.jeuxwebapi.models.TeamCreateDto;
 import com.jeuxwebapi.models.TeamDto;
 import com.jeuxwebapi.models.TeamUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TeamService;
+import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -22,6 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/teams")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class TeamResource {
     @Inject
     TeamService teamService;
@@ -45,6 +49,7 @@ public class TeamResource {
 
     @POST
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> createTeam(TeamCreateDto createDto) {
         return teamService.createTeam(createDto);
     }
@@ -52,12 +57,14 @@ public class TeamResource {
     @POST
     @Path("/create")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> createTeamAlt(TeamCreateDto createDto) {
         return teamService.createTeam(createDto);
     }
 
     @PUT
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> updateTeam(TeamUpdateDto updateDto) {
         return teamService.updateTeam(updateDto);
     }
@@ -65,6 +72,7 @@ public class TeamResource {
     @POST
     @Path("/update/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> updateTeamAlt(@PathParam("id") long id, TeamUpdateDto updateDto) {
         ServiceDataResult<TeamDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
@@ -76,6 +84,7 @@ public class TeamResource {
     @DELETE
     @Path("/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> deleteTeam(@PathParam("id") long id) {
         return teamService.deleteTeam(id);
     }
@@ -83,10 +92,10 @@ public class TeamResource {
     @POST
     @Path("/delete/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<TeamDto> deleteTeamAlt(@PathParam("id") long id) {
         return teamService.deleteTeam(id);
     }
-
     private ServiceDataResult<TeamDto> validateUpdateId(long id, TeamUpdateDto updateDto) {
         if (updateDto == null || updateDto.getId() != id) {
             ServiceDataResult<TeamDto> result = new ServiceDataResult<>();

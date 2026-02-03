@@ -1,5 +1,6 @@
 package com.jeuxwebapi.resources;
 
+import com.jeuxwebapi.auth.AppRoles;
 import com.jeuxwebapi.models.MatchCreateDto;
 import com.jeuxwebapi.models.MatchDto;
 import com.jeuxwebapi.models.MatchUpdateDto;
@@ -7,6 +8,8 @@ import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.MatchService;
 import com.jeuxwebapi.util.QueryUtils;
+import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -25,6 +28,7 @@ import java.util.List;
 @Path("/matches")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class MatchResource {
     @Inject
     MatchService matchService;
@@ -68,6 +72,7 @@ public class MatchResource {
 
     @POST
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> createMatch(MatchCreateDto createDto) {
         return matchService.createMatch(createDto);
     }
@@ -75,12 +80,14 @@ public class MatchResource {
     @POST
     @Path("/create")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> createMatchAlt(MatchCreateDto createDto) {
         return matchService.createMatch(createDto);
     }
 
     @PUT
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> updateMatch(MatchUpdateDto updateDto) {
         return matchService.updateMatch(updateDto);
     }
@@ -88,6 +95,7 @@ public class MatchResource {
     @POST
     @Path("/update/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> updateMatchAlt(@PathParam("id") long id, MatchUpdateDto updateDto) {
         ServiceDataResult<MatchDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
@@ -99,6 +107,7 @@ public class MatchResource {
     @DELETE
     @Path("/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> deleteMatch(@PathParam("id") long id) {
         return matchService.deleteMatch(id);
     }
@@ -106,10 +115,10 @@ public class MatchResource {
     @POST
     @Path("/delete/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<MatchDto> deleteMatchAlt(@PathParam("id") long id) {
         return matchService.deleteMatch(id);
     }
-
     private ServiceDataResult<MatchDto> validateUpdateId(long id, MatchUpdateDto updateDto) {
         if (updateDto == null || updateDto.getId() != id) {
             ServiceDataResult<MatchDto> result = new ServiceDataResult<>();

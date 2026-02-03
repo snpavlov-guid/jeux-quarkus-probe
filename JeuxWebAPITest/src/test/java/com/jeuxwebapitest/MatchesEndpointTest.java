@@ -7,17 +7,30 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class MatchesEndpointTest {
+    private static String authToken;
+
+    @BeforeAll
+    static void initAuthToken() {
+        authToken = KeycloakAuthUtil.getKeycloakAuthToken();
+    }
+
+    private static io.restassured.specification.RequestSpecification authorized() {
+        return given().header("Authorization", "Bearer " + authToken);
+    }
+
     @Test
     public void matchesEndpointSupportsCommonParameters() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/matches")
                 .then()
@@ -26,7 +39,7 @@ public class MatchesEndpointTest {
                 .body("items", notNullValue())
                 .body("total", greaterThanOrEqualTo(0));
 
-        given()
+        authorized()
                 .queryParam("skip", 0)
                 .queryParam("size", 5)
                 .when()
@@ -35,7 +48,7 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("date", "2020-01-01")
                 .when()
                 .get("/api/q/v1/matches")
@@ -43,7 +56,7 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("order", "desc")
                 .when()
                 .get("/api/q/v1/matches")
@@ -51,7 +64,7 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        List<Map<String, Object>> items = given()
+        List<Map<String, Object>> items = authorized()
                 .when()
                 .get("/api/q/v1/matches")
                 .then()
@@ -67,7 +80,7 @@ public class MatchesEndpointTest {
             Number tournamentId = (Number) base.get("tournamentId");
 
             if (leagueId != null && stageId != null) {
-                given()
+                authorized()
                         .queryParam("leagueId", leagueId.longValue())
                         .queryParam("stageId", stageId.longValue())
                         .when()
@@ -78,7 +91,7 @@ public class MatchesEndpointTest {
             }
 
             if (tournamentId != null) {
-                given()
+                authorized()
                         .queryParam("tournamentId", tournamentId.longValue())
                         .when()
                         .get("/api/q/v1/matches")
@@ -92,7 +105,7 @@ public class MatchesEndpointTest {
 
     @Test
     public void matchesEndpointReturnsEntityById() {
-        List<Integer> ids = given()
+        List<Integer> ids = authorized()
                 .when()
                 .get("/api/q/v1/matches")
                 .then()
@@ -103,7 +116,7 @@ public class MatchesEndpointTest {
 
         if (ids != null && !ids.isEmpty()) {
             Integer id = ids.get(0);
-            given()
+            authorized()
                     .when()
                     .get("/api/q/v1/matches/" + id)
                     .then()
@@ -112,7 +125,7 @@ public class MatchesEndpointTest {
                     .body("data.id", equalTo(id));
         }
 
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/matches/-1")
                 .then()
@@ -124,7 +137,7 @@ public class MatchesEndpointTest {
 
     @Test
     public void matchesEndpointSupportsCreateUpdateDeleteChain() {
-        List<Map<String, Object>> items = given()
+        List<Map<String, Object>> items = authorized()
                 .when()
                 .get("/api/q/v1/matches")
                 .then()
@@ -159,7 +172,7 @@ public class MatchesEndpointTest {
         createBody.put("hTeamId", hTeamId.longValue());
         createBody.put("gTeamId", gTeamId.longValue());
 
-        Integer id = given()
+        Integer id = authorized()
                 .contentType("application/json")
                 .body(createBody)
                 .when()
@@ -177,7 +190,7 @@ public class MatchesEndpointTest {
         updateBody.put("hScore", 1);
         updateBody.put("gScore", 2);
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body(updateBody)
                 .when()
@@ -188,7 +201,7 @@ public class MatchesEndpointTest {
                 .body("data.id", equalTo(id))
                 .body("data.round", equalTo("R2"));
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body("{}")
                 .when()

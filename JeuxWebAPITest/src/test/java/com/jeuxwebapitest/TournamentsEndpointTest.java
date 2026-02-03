@@ -6,16 +6,29 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class TournamentsEndpointTest {
+    private static String authToken;
+
+    @BeforeAll
+    static void initAuthToken() {
+        authToken = KeycloakAuthUtil.getKeycloakAuthToken();
+    }
+
+    private static io.restassured.specification.RequestSpecification authorized() {
+        return given().header("Authorization", "Bearer " + authToken);
+    }
+
     @Test
     public void tournamentsEndpointSupportsCommonParameters() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/tournaments")
                 .then()
@@ -24,7 +37,7 @@ public class TournamentsEndpointTest {
                 .body("items", notNullValue())
                 .body("total", greaterThanOrEqualTo(0));
 
-        given()
+        authorized()
                 .queryParam("skip", 0)
                 .queryParam("size", 5)
                 .when()
@@ -33,7 +46,7 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("season", 2020)
                 .when()
                 .get("/api/q/v1/tournaments")
@@ -41,7 +54,7 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("order", "desc")
                 .when()
                 .get("/api/q/v1/tournaments")
@@ -49,7 +62,7 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        List<Integer> leagueIds = given()
+        List<Integer> leagueIds = authorized()
                 .when()
                 .get("/api/q/v1/leagues")
                 .then()
@@ -60,7 +73,7 @@ public class TournamentsEndpointTest {
 
         if (leagueIds != null && !leagueIds.isEmpty()) {
             Integer leagueId = leagueIds.get(0);
-            given()
+            authorized()
                     .queryParam("leagueId", leagueId)
                     .when()
                     .get("/api/q/v1/tournaments")
@@ -72,7 +85,7 @@ public class TournamentsEndpointTest {
 
     @Test
     public void tournamentsEndpointReturnsEntityById() {
-        List<Integer> ids = given()
+        List<Integer> ids = authorized()
                 .when()
                 .get("/api/q/v1/tournaments")
                 .then()
@@ -83,7 +96,7 @@ public class TournamentsEndpointTest {
 
         if (ids != null && !ids.isEmpty()) {
             Integer id = ids.get(0);
-            given()
+            authorized()
                     .when()
                     .get("/api/q/v1/tournaments/" + id)
                     .then()
@@ -92,7 +105,7 @@ public class TournamentsEndpointTest {
                     .body("data.id", equalTo(id));
         }
 
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/tournaments/-1")
                 .then()
@@ -104,7 +117,7 @@ public class TournamentsEndpointTest {
 
     @Test
     public void tournamentsEndpointSupportsCreateUpdateDeleteChain() {
-        Integer leagueId = given()
+        Integer leagueId = authorized()
                 .contentType("application/json")
                 .body(Map.of("name", "Test League For Tournament"))
                 .when()
@@ -116,7 +129,7 @@ public class TournamentsEndpointTest {
                 .extract()
                 .path("data.id");
 
-        Integer id = given()
+        Integer id = authorized()
                 .contentType("application/json")
                 .body(Map.of(
                         "name", "Test Tournament Create",
@@ -133,7 +146,7 @@ public class TournamentsEndpointTest {
                 .extract()
                 .path("data.id");
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body(Map.of(
                         "id", id,
@@ -150,7 +163,7 @@ public class TournamentsEndpointTest {
                 .body("data.id", equalTo(id))
                 .body("data.name", equalTo("Test Tournament Updated"));
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -160,7 +173,7 @@ public class TournamentsEndpointTest {
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id));
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -173,7 +186,7 @@ public class TournamentsEndpointTest {
 
     @Test
     public void tournamentsEndpointSupportsRPTournaments() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/tournaments/rpl")
                 .then()
@@ -181,7 +194,7 @@ public class TournamentsEndpointTest {
                 .body("result", equalTo(true))
                 .body("items", notNullValue());
 
-        given()
+        authorized()
                 .queryParam("season", 2020)
                 .queryParam("skip", 0)
                 .queryParam("size", 5)

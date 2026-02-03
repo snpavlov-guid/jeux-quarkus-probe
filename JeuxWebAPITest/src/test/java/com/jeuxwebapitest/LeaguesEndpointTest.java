@@ -6,16 +6,29 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class LeaguesEndpointTest {
+    private static String authToken;
+
+    @BeforeAll
+    static void initAuthToken() {
+        authToken = KeycloakAuthUtil.getKeycloakAuthToken();
+    }
+
+    private static io.restassured.specification.RequestSpecification authorized() {
+        return given().header("Authorization", "Bearer " + authToken);
+    }
+
     @Test
     public void leaguesEndpointSupportsCommonParameters() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/leagues")
                 .then()
@@ -24,7 +37,7 @@ public class LeaguesEndpointTest {
                 .body("items", notNullValue())
                 .body("total", greaterThanOrEqualTo(0));
 
-        given()
+        authorized()
                 .queryParam("skip", 0)
                 .queryParam("size", 5)
                 .when()
@@ -33,7 +46,7 @@ public class LeaguesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("name", "a")
                 .when()
                 .get("/api/q/v1/leagues")
@@ -41,7 +54,7 @@ public class LeaguesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("order", "desc")
                 .when()
                 .get("/api/q/v1/leagues")
@@ -52,7 +65,7 @@ public class LeaguesEndpointTest {
 
     @Test
     public void leaguesEndpointReturnsEntityById() {
-        List<Integer> ids = given()
+        List<Integer> ids = authorized()
                 .when()
                 .get("/api/q/v1/leagues")
                 .then()
@@ -63,7 +76,7 @@ public class LeaguesEndpointTest {
 
         if (ids != null && !ids.isEmpty()) {
             Integer id = ids.get(0);
-            given()
+            authorized()
                     .when()
                     .get("/api/q/v1/leagues/" + id)
                     .then()
@@ -72,7 +85,7 @@ public class LeaguesEndpointTest {
                     .body("data.id", equalTo(id));
         }
 
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/leagues/-1")
                 .then()
@@ -84,7 +97,7 @@ public class LeaguesEndpointTest {
 
     @Test
     public void leaguesEndpointSupportsCreateUpdateDeleteChain() {
-        Integer id = given()
+        Integer id = authorized()
                 .contentType("application/json")
                 .body(Map.of("name", "Test League Create"))
                 .when()
@@ -96,7 +109,7 @@ public class LeaguesEndpointTest {
                 .extract()
                 .path("data.id");
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body(Map.of("id", id, "name", "Test League Updated"))
                 .when()
@@ -107,7 +120,7 @@ public class LeaguesEndpointTest {
                 .body("data.id", equalTo(id))
                 .body("data.name", equalTo("Test League Updated"));
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -120,7 +133,7 @@ public class LeaguesEndpointTest {
 
     @Test
     public void leaguesEndpointSupportsRPLeague() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/leagues/rpl")
                 .then()

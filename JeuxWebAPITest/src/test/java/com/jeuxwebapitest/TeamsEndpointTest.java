@@ -6,16 +6,29 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class TeamsEndpointTest {
+    private static String authToken;
+
+    @BeforeAll
+    static void initAuthToken() {
+        authToken = KeycloakAuthUtil.getKeycloakAuthToken();
+    }
+
+    private static io.restassured.specification.RequestSpecification authorized() {
+        return given().header("Authorization", "Bearer " + authToken);
+    }
+
     @Test
     public void teamsEndpointSupportsCommonParameters() {
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/teams")
                 .then()
@@ -24,7 +37,7 @@ public class TeamsEndpointTest {
                 .body("items", notNullValue())
                 .body("total", greaterThanOrEqualTo(0));
 
-        given()
+        authorized()
                 .queryParam("skip", 0)
                 .queryParam("size", 5)
                 .when()
@@ -33,7 +46,7 @@ public class TeamsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("name", "a")
                 .when()
                 .get("/api/q/v1/teams")
@@ -41,7 +54,7 @@ public class TeamsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true));
 
-        given()
+        authorized()
                 .queryParam("order", "desc")
                 .when()
                 .get("/api/q/v1/teams")
@@ -52,7 +65,7 @@ public class TeamsEndpointTest {
 
     @Test
     public void teamsEndpointReturnsEntityById() {
-        List<Integer> ids = given()
+        List<Integer> ids = authorized()
                 .when()
                 .get("/api/q/v1/teams")
                 .then()
@@ -63,7 +76,7 @@ public class TeamsEndpointTest {
 
         if (ids != null && !ids.isEmpty()) {
             Integer id = ids.get(0);
-            given()
+            authorized()
                     .when()
                     .get("/api/q/v1/teams/" + id)
                     .then()
@@ -72,7 +85,7 @@ public class TeamsEndpointTest {
                     .body("data.id", equalTo(id));
         }
 
-        given()
+        authorized()
                 .when()
                 .get("/api/q/v1/teams/-1")
                 .then()
@@ -84,7 +97,7 @@ public class TeamsEndpointTest {
 
     @Test
     public void teamsEndpointSupportsCreateUpdateDeleteChain() {
-        Integer id = given()
+        Integer id = authorized()
                 .contentType("application/json")
                 .body(Map.of(
                         "name", "Test Team Create",
@@ -101,7 +114,7 @@ public class TeamsEndpointTest {
                 .extract()
                 .path("data.id");
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body(Map.of(
                         "id", id,
@@ -119,7 +132,7 @@ public class TeamsEndpointTest {
                 .body("data.name", equalTo("Test Team Updated"))
                 .body("data.city", equalTo("Updated City"));
 
-        given()
+        authorized()
                 .contentType("application/json")
                 .body("{}")
                 .when()

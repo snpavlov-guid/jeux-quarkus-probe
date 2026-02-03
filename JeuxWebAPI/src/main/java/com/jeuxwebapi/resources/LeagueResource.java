@@ -1,12 +1,15 @@
 package com.jeuxwebapi.resources;
 
+import com.jeuxwebapi.auth.AppRoles;
 import com.jeuxwebapi.models.LeagueCreateDto;
 import com.jeuxwebapi.models.LeagueDto;
 import com.jeuxwebapi.models.LeagueUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.LeagueService;
+import io.quarkus.security.Authenticated;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -23,6 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/leagues")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class LeagueResource {
     @Inject
     LeagueService leagueService;
@@ -55,6 +59,7 @@ public class LeagueResource {
 
     @POST
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> createLeague(LeagueCreateDto createDto) {
         return leagueService.createLeague(createDto);
     }
@@ -62,12 +67,14 @@ public class LeagueResource {
     @POST
     @Path("/create")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> createLeagueAlt(LeagueCreateDto createDto) {
         return leagueService.createLeague(createDto);
     }
 
     @PUT
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> updateLeague(LeagueUpdateDto updateDto) {
         return leagueService.updateLeague(updateDto);
     }
@@ -75,6 +82,7 @@ public class LeagueResource {
     @POST
     @Path("/update/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> updateLeagueAlt(@PathParam("id") long id, LeagueUpdateDto updateDto) {
         ServiceDataResult<LeagueDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
@@ -86,6 +94,7 @@ public class LeagueResource {
     @DELETE
     @Path("/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> deleteLeague(@PathParam("id") long id) {
         return leagueService.deleteLeague(id);
     }
@@ -93,10 +102,10 @@ public class LeagueResource {
     @POST
     @Path("/delete/{id}")
     @Transactional
+    @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
     public ServiceDataResult<LeagueDto> deleteLeagueAlt(@PathParam("id") long id) {
         return leagueService.deleteLeague(id);
     }
-
     private ServiceDataResult<LeagueDto> validateUpdateId(long id, LeagueUpdateDto updateDto) {
         if (updateDto == null || updateDto.getId() != id) {
             ServiceDataResult<LeagueDto> result = new ServiceDataResult<>();
