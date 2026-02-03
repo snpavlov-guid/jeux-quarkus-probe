@@ -9,6 +9,8 @@ import com.jeuxwebapi.models.TournamentUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -20,12 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@ApplicationScoped
 public class TournamentService {
-    private final EntityManager entityManager;
-
-    public TournamentService(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    @Inject
+    EntityManager entityManager;
 
     public ServiceListResult<TournamentDto> findTournaments(Long leagueId, Integer season, Integer skip, Integer size, String order) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();

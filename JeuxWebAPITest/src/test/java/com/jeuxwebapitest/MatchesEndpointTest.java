@@ -1,6 +1,7 @@
 package com.jeuxwebapitest;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -63,6 +64,7 @@ public class MatchesEndpointTest {
             Map<String, Object> base = items.get(0);
             Number leagueId = (Number) base.get("leagueId");
             Number stageId = (Number) base.get("stageId");
+            Number tournamentId = (Number) base.get("tournamentId");
 
             if (leagueId != null && stageId != null) {
                 given()
@@ -73,6 +75,17 @@ public class MatchesEndpointTest {
                         .then()
                         .statusCode(200)
                         .body("result", equalTo(true));
+            }
+
+            if (tournamentId != null) {
+                given()
+                        .queryParam("tournamentId", tournamentId.longValue())
+                        .when()
+                        .get("/api/q/v1/matches")
+                        .then()
+                        .statusCode(200)
+                        .body("result", equalTo(true))
+                        .body("items.tournamentId", everyItem(equalTo(tournamentId.intValue())));
             }
         }
     }

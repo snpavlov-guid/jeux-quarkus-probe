@@ -8,7 +8,6 @@ import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TournamentService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -26,7 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 @Consumes(MediaType.APPLICATION_JSON)
 public class TournamentResource {
     @Inject
-    EntityManager entityManager;
+    TournamentService tournamentService;
 
     @ConfigProperty(name = "RFLeagueId")
     long rfLeagueId;
@@ -39,7 +38,7 @@ public class TournamentResource {
             @QueryParam("size") Integer size,
             @QueryParam("order") String order
     ) {
-        return new TournamentService(entityManager).findTournaments(leagueId, season, skip, size, order);
+        return tournamentService.findTournaments(leagueId, season, skip, size, order);
     }
 
     @GET
@@ -50,32 +49,32 @@ public class TournamentResource {
             @QueryParam("size") Integer size,
             @QueryParam("order") String order
     ) {
-        return new TournamentService(entityManager).findTournaments(rfLeagueId, season, skip, size, order);
+        return tournamentService.findTournaments(rfLeagueId, season, skip, size, order);
     }
 
     @GET
     @Path("/{id}")
     public ServiceDataResult<TournamentDto> getTournamentById(@PathParam("id") long id) {
-        return new TournamentService(entityManager).findTournamentById(id);
+        return tournamentService.findTournamentById(id);
     }
 
     @POST
     @Transactional
     public ServiceDataResult<TournamentDto> createTournament(TournamentCreateDto createDto) {
-        return new TournamentService(entityManager).createTournament(createDto);
+        return tournamentService.createTournament(createDto);
     }
 
     @POST
     @Path("/create")
     @Transactional
     public ServiceDataResult<TournamentDto> createTournamentAlt(TournamentCreateDto createDto) {
-        return new TournamentService(entityManager).createTournament(createDto);
+        return tournamentService.createTournament(createDto);
     }
 
     @PUT
     @Transactional
     public ServiceDataResult<TournamentDto> updateTournament(TournamentUpdateDto updateDto) {
-        return new TournamentService(entityManager).updateTournament(updateDto);
+        return tournamentService.updateTournament(updateDto);
     }
 
     @POST
@@ -86,21 +85,21 @@ public class TournamentResource {
         if (idMismatch != null) {
             return idMismatch;
         }
-        return new TournamentService(entityManager).updateTournament(updateDto);
+        return tournamentService.updateTournament(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
     @Transactional
     public ServiceDataResult<TournamentDto> deleteTournament(@PathParam("id") long id) {
-        return new TournamentService(entityManager).deleteTournament(id);
+        return tournamentService.deleteTournament(id);
     }
 
     @POST
     @Path("/delete/{id}")
     @Transactional
     public ServiceDataResult<TournamentDto> deleteTournamentAlt(@PathParam("id") long id) {
-        return new TournamentService(entityManager).deleteTournament(id);
+        return tournamentService.deleteTournament(id);
     }
 
     private ServiceDataResult<TournamentDto> validateUpdateId(long id, TournamentUpdateDto updateDto) {

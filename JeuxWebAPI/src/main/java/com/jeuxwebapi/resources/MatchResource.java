@@ -8,7 +8,6 @@ import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.MatchService;
 import com.jeuxwebapi.util.QueryUtils;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -28,11 +27,12 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 public class MatchResource {
     @Inject
-    EntityManager entityManager;
+    MatchService matchService;
 
     @GET
     public ServiceListResult<MatchDto> getMatchs(
             @QueryParam("leagueId") Long leagueId,
+            @QueryParam("tournamentId") Long tournamentId,
             @QueryParam("stageId") Long stageId,
             @QueryParam("hteam") String hTeamName,
             @QueryParam("gteam") String gTeamName,
@@ -46,8 +46,9 @@ public class MatchResource {
         String guestTeam = (gTeamName != null && !gTeamName.isBlank()) ? gTeamName : null;
         List<Integer> tourValues = QueryUtils.parseTours(tours);
         LocalDate targetDate = QueryUtils.parseDate(date);
-        return new MatchService(entityManager).findMatches(
+        return matchService.findMatches(
                 leagueId,
+                tournamentId,
                 stageId,
                 homeTeam,
                 guestTeam,
@@ -62,26 +63,26 @@ public class MatchResource {
     @GET
     @Path("/{id}")
     public ServiceDataResult<MatchDto> getMatchById(@PathParam("id") long id) {
-        return new MatchService(entityManager).findMatchById(id);
+        return matchService.findMatchById(id);
     }
 
     @POST
     @Transactional
     public ServiceDataResult<MatchDto> createMatch(MatchCreateDto createDto) {
-        return new MatchService(entityManager).createMatch(createDto);
+        return matchService.createMatch(createDto);
     }
 
     @POST
     @Path("/create")
     @Transactional
     public ServiceDataResult<MatchDto> createMatchAlt(MatchCreateDto createDto) {
-        return new MatchService(entityManager).createMatch(createDto);
+        return matchService.createMatch(createDto);
     }
 
     @PUT
     @Transactional
     public ServiceDataResult<MatchDto> updateMatch(MatchUpdateDto updateDto) {
-        return new MatchService(entityManager).updateMatch(updateDto);
+        return matchService.updateMatch(updateDto);
     }
 
     @POST
@@ -92,21 +93,21 @@ public class MatchResource {
         if (idMismatch != null) {
             return idMismatch;
         }
-        return new MatchService(entityManager).updateMatch(updateDto);
+        return matchService.updateMatch(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
     @Transactional
     public ServiceDataResult<MatchDto> deleteMatch(@PathParam("id") long id) {
-        return new MatchService(entityManager).deleteMatch(id);
+        return matchService.deleteMatch(id);
     }
 
     @POST
     @Path("/delete/{id}")
     @Transactional
     public ServiceDataResult<MatchDto> deleteMatchAlt(@PathParam("id") long id) {
-        return new MatchService(entityManager).deleteMatch(id);
+        return matchService.deleteMatch(id);
     }
 
     private ServiceDataResult<MatchDto> validateUpdateId(long id, MatchUpdateDto updateDto) {

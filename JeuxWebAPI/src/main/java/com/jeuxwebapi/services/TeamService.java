@@ -7,6 +7,8 @@ import com.jeuxwebapi.models.TeamUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -16,12 +18,10 @@ import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
 
+@ApplicationScoped
 public class TeamService {
-    private final EntityManager entityManager;
-
-    public TeamService(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    @Inject
+    EntityManager entityManager;
 
     public ServiceListResult<TeamDto> findTeams(String name, Integer skip, Integer size, String order) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();

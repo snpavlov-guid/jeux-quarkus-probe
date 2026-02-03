@@ -8,7 +8,6 @@ import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.LeagueService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -26,7 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 @Consumes(MediaType.APPLICATION_JSON)
 public class LeagueResource {
     @Inject
-    EntityManager entityManager;
+    LeagueService leagueService;
 
     @ConfigProperty(name = "RFLeagueId")
     long rfLeagueId;
@@ -39,38 +38,38 @@ public class LeagueResource {
             @QueryParam("order") String order
     ) {
         String nameFilter = (name != null && !name.isBlank()) ? name : null;
-        return new LeagueService(entityManager).findLeagues(nameFilter, skip, size, order);
+        return leagueService.findLeagues(nameFilter, skip, size, order);
     }
 
     @GET
     @Path("/{id}")
     public ServiceDataResult<LeagueDto> getLeagueById(@PathParam("id") long id) {
-        return new LeagueService(entityManager).findLeagueById(id);
+        return leagueService.findLeagueById(id);
     }
 
     @GET
     @Path("/rpl")
     public ServiceDataResult<LeagueDto> getRPLeague() {
-        return new LeagueService(entityManager).findLeagueById(rfLeagueId);
+        return leagueService.findLeagueById(rfLeagueId);
     }
 
     @POST
     @Transactional
     public ServiceDataResult<LeagueDto> createLeague(LeagueCreateDto createDto) {
-        return new LeagueService(entityManager).createLeague(createDto);
+        return leagueService.createLeague(createDto);
     }
 
     @POST
     @Path("/create")
     @Transactional
     public ServiceDataResult<LeagueDto> createLeagueAlt(LeagueCreateDto createDto) {
-        return new LeagueService(entityManager).createLeague(createDto);
+        return leagueService.createLeague(createDto);
     }
 
     @PUT
     @Transactional
     public ServiceDataResult<LeagueDto> updateLeague(LeagueUpdateDto updateDto) {
-        return new LeagueService(entityManager).updateLeague(updateDto);
+        return leagueService.updateLeague(updateDto);
     }
 
     @POST
@@ -81,21 +80,21 @@ public class LeagueResource {
         if (idMismatch != null) {
             return idMismatch;
         }
-        return new LeagueService(entityManager).updateLeague(updateDto);
+        return leagueService.updateLeague(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
     @Transactional
     public ServiceDataResult<LeagueDto> deleteLeague(@PathParam("id") long id) {
-        return new LeagueService(entityManager).deleteLeague(id);
+        return leagueService.deleteLeague(id);
     }
 
     @POST
     @Path("/delete/{id}")
     @Transactional
     public ServiceDataResult<LeagueDto> deleteLeagueAlt(@PathParam("id") long id) {
-        return new LeagueService(entityManager).deleteLeague(id);
+        return leagueService.deleteLeague(id);
     }
 
     private ServiceDataResult<LeagueDto> validateUpdateId(long id, LeagueUpdateDto updateDto) {

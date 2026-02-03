@@ -7,7 +7,6 @@ import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TeamService;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -25,7 +24,7 @@ import jakarta.ws.rs.core.MediaType;
 @Consumes(MediaType.APPLICATION_JSON)
 public class TeamResource {
     @Inject
-    EntityManager entityManager;
+    TeamService teamService;
 
     @GET
     public ServiceListResult<TeamDto> getTeams(
@@ -35,32 +34,32 @@ public class TeamResource {
             @QueryParam("order") String order
     ) {
         String nameFilter = (name != null && !name.isBlank()) ? name : null;
-        return new TeamService(entityManager).findTeams(nameFilter, skip, size, order);
+        return teamService.findTeams(nameFilter, skip, size, order);
     }
 
     @GET
     @Path("/{id}")
     public ServiceDataResult<TeamDto> getTeamById(@PathParam("id") long id) {
-        return new TeamService(entityManager).findTeamById(id);
+        return teamService.findTeamById(id);
     }
 
     @POST
     @Transactional
     public ServiceDataResult<TeamDto> createTeam(TeamCreateDto createDto) {
-        return new TeamService(entityManager).createTeam(createDto);
+        return teamService.createTeam(createDto);
     }
 
     @POST
     @Path("/create")
     @Transactional
     public ServiceDataResult<TeamDto> createTeamAlt(TeamCreateDto createDto) {
-        return new TeamService(entityManager).createTeam(createDto);
+        return teamService.createTeam(createDto);
     }
 
     @PUT
     @Transactional
     public ServiceDataResult<TeamDto> updateTeam(TeamUpdateDto updateDto) {
-        return new TeamService(entityManager).updateTeam(updateDto);
+        return teamService.updateTeam(updateDto);
     }
 
     @POST
@@ -71,21 +70,21 @@ public class TeamResource {
         if (idMismatch != null) {
             return idMismatch;
         }
-        return new TeamService(entityManager).updateTeam(updateDto);
+        return teamService.updateTeam(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
     @Transactional
     public ServiceDataResult<TeamDto> deleteTeam(@PathParam("id") long id) {
-        return new TeamService(entityManager).deleteTeam(id);
+        return teamService.deleteTeam(id);
     }
 
     @POST
     @Path("/delete/{id}")
     @Transactional
     public ServiceDataResult<TeamDto> deleteTeamAlt(@PathParam("id") long id) {
-        return new TeamService(entityManager).deleteTeam(id);
+        return teamService.deleteTeam(id);
     }
 
     private ServiceDataResult<TeamDto> validateUpdateId(long id, TeamUpdateDto updateDto) {

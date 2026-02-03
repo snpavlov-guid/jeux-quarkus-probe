@@ -8,6 +8,8 @@ import com.jeuxwebapi.models.MatchUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -21,15 +23,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@ApplicationScoped
 public class MatchService {
-    private final EntityManager entityManager;
-
-    public MatchService(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    @Inject
+    EntityManager entityManager;
 
     public ServiceListResult<MatchDto> findMatches(
             Long leagueId,
+            Long tournamentId,
             Long stageId,
             String hTeamName,
             String gTeamName,
@@ -43,7 +44,17 @@ public class MatchService {
         CriteriaQuery<Match> cq = cb.createQuery(Match.class);
         Root<Match> root = cq.from(Match.class);
 
-        List<Predicate> predicates = buildPredicates(cb, root, leagueId, stageId, hTeamName, gTeamName, tours, date);
+        List<Predicate> predicates = buildPredicates(
+                cb,
+                root,
+                leagueId,
+                tournamentId,
+                stageId,
+                hTeamName,
+                gTeamName,
+                tours,
+                date
+        );
 
         if (!predicates.isEmpty()) {
             cq.where(predicates.toArray(new Predicate[0]));
@@ -63,7 +74,7 @@ public class MatchService {
                 .map(MatchService::toDto)
                 .toList();
 
-        int total = countMatches(leagueId, stageId, hTeamName, gTeamName, tours, date);
+        int total = countMatches(leagueId, tournamentId, stageId, hTeamName, gTeamName, tours, date);
         ServiceListResult<MatchDto> result = new ServiceListResult<>();
         result.setResult(true);
         result.setItems(items);
@@ -151,6 +162,7 @@ public class MatchService {
 
     private int countMatches(
             Long leagueId,
+            Long tournamentId,
             Long stageId,
             String hTeamName,
             String gTeamName,
@@ -160,7 +172,17 @@ public class MatchService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Match> root = cq.from(Match.class);
-        List<Predicate> predicates = buildPredicates(cb, root, leagueId, stageId, hTeamName, gTeamName, tours, date);
+        List<Predicate> predicates = buildPredicates(
+                cb,
+                root,
+                leagueId,
+                tournamentId,
+                stageId,
+                hTeamName,
+                gTeamName,
+                tours,
+                date
+        );
         cq.select(cb.count(root));
         if (!predicates.isEmpty()) {
             cq.where(predicates.toArray(new Predicate[0]));
@@ -173,6 +195,7 @@ public class MatchService {
             CriteriaBuilder cb,
             Root<Match> root,
             Long leagueId,
+            Long tournamentId,
             Long stageId,
             String hTeamName,
             String gTeamName,
@@ -183,6 +206,9 @@ public class MatchService {
 
         if (leagueId != null) {
             predicates.add(cb.equal(root.get("LeagueId"), leagueId));
+        }
+        if (tournamentId != null) {
+            predicates.add(cb.equal(root.get("TournamentId"), tournamentId));
         }
         if (stageId != null) {
             predicates.add(cb.equal(root.get("StageId"), stageId));
