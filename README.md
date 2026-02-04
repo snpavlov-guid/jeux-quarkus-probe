@@ -36,6 +36,34 @@ mvn -pl JeuxDBContextTest clean test
 mvn -pl JeuxWebAPI clean package
 ```
 
+## Аутентификация
+
+Веб‑API защищено OIDC (Keycloak).
+
+- Все эндпоинты модулей `League/Match/Team/Tournament` требуют `@Authenticated`.
+- Операции создания/обновления/удаления дополнительно требуют роли:
+  - `probe-owner` или `probe-contrib`.
+
+### Настройка Keycloak
+
+Настройки OIDC находятся в `JeuxWebAPI\config\application.properties`:
+- `quarkus.oidc.auth-server-url=http://localhost:8082/realms/probe-app`
+- `quarkus.oidc.application-type=service`
+
+### Тесты WebAPI
+
+Тесты используют внешний Keycloak и получают токен через password grant.
+Параметры запроса токена задаются в `JeuxWebAPITest\config\application.properties`:
+
+- `keycloak.auth.token-url=http://localhost:8082/realms/probe-app/protocol/openid-connect/token`
+- `keycloak.auth.client-id=probe-app-client`
+- `keycloak.auth.grant-type=password`
+- `keycloak.auth.username=testuser01`
+- `keycloak.auth.password=Test-user123`
+
+В тестовой конфигурации Dev Services отключены:
+- `quarkus.devservices.enabled=false`
+
 **Запуск в dev‑режиме**
 
 Перед запуском убедитесь, что:
