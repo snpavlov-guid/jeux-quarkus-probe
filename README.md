@@ -100,6 +100,10 @@ mvn -pl JeuxWebAPI quarkus:dev
 http://localhost:30881/api/q/v1
 ```
 
+Документация OpenAPI и Swagger UI:
+- OpenAPI JSON: `http://localhost:30881/openapi`
+- Swagger UI: `http://localhost:30881/swaggerui`
+
 **Остановка**
 
 Найти процесс, который занял порт можно командой:
