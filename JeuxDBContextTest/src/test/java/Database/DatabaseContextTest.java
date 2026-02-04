@@ -6,9 +6,10 @@ import Entities.Stage;
 import Entities.Team;
 import Entities.Tournament;
 import Services.MatchUploadService;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.reactive.mutiny.Mutiny;
+import org.hibernate.reactive.provider.ReactiveServiceRegistryBuilder;
+import org.hibernate.service.ServiceRegistry;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -18,6 +19,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class DatabaseContextTest {
@@ -30,9 +34,7 @@ public class DatabaseContextTest {
         String dbPassword = properties.getProperty("db.password");
         validateConnectionParams(dbUrl, dbUser, dbPassword);
 
-        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "create");
-
-        SessionFactory sessionFactory = configuration.buildSessionFactory();
+        Mutiny.SessionFactory sessionFactory = buildSessionFactory(dbUrl, dbUser, dbPassword, "create");
         sessionFactory.close();
     }
 
@@ -46,22 +48,14 @@ public class DatabaseContextTest {
         String dbPassword = properties.getProperty("db.password");
         validateConnectionParams(dbUrl, dbUser, dbPassword);
 
-        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
-
-        SessionFactory sessionFactory = configuration.buildSessionFactory();
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-
+        Mutiny.SessionFactory sessionFactory = buildSessionFactory(dbUrl, dbUser, dbPassword, "validate");
         try {
-            MatchUploadService service = new MatchUploadService(session);
-            League league = service.UpsertLeague(leagueName);
+            League league = sessionFactory.withTransaction((session, tx) -> {
+                MatchUploadService service = new MatchUploadService(session);
+                return service.UpsertLeague(leagueName);
+            }).await().atMost(Duration.ofSeconds(10));
             Assertions.assertNotNull(league, "UpsertLeague should return a League");
-            session.getTransaction().commit();
-        } catch (RuntimeException exception) {
-            session.getTransaction().rollback();
-            throw exception;
         } finally {
-            session.close();
             sessionFactory.close();
         }
     }
@@ -84,22 +78,14 @@ public class DatabaseContextTest {
         Assertions.assertNotNull(tournament.getName(), "Tournament name must be set");
         Assertions.assertNotNull(fullPath, "Full path must be built");
 
-        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
-
-        SessionFactory sessionFactory = configuration.buildSessionFactory();
-        Session session = sessionFactory.openSession();
-        session.beginTransaction();
-
+        Mutiny.SessionFactory sessionFactory = buildSessionFactory(dbUrl, dbUser, dbPassword, "validate");
         try {
-            MatchUploadService service = new MatchUploadService(session);
-            Tournament upserted = service.UpgradeTournament(tournament);
+            Tournament upserted = sessionFactory.withTransaction((session, tx) -> {
+                MatchUploadService service = new MatchUploadService(session);
+                return service.UpgradeTournament(tournament);
+            }).await().atMost(Duration.ofSeconds(20));
             Assertions.assertNotNull(upserted, "UpsertTournament should return a Tournament");
-            session.getTransaction().commit();
-        } catch (RuntimeException exception) {
-            session.getTransaction().rollback();
-            throw exception;
         } finally {
-            session.close();
             sessionFactory.close();
         }
     }
@@ -116,19 +102,14 @@ public class DatabaseContextTest {
 
         String dataRoot = buildDataRoot(properties);
         String fullPath = Paths.get(dataRoot, turnirDataFile).toString();
-        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
-
-        SessionFactory sessionFactory = configuration.buildSessionFactory();
-        Session session = sessionFactory.openSession();
-
+        Mutiny.SessionFactory sessionFactory = buildSessionFactory(dbUrl, dbUser, dbPassword, "validate");
         try {
-            MatchUploadService service = new MatchUploadService(session);
-            boolean result = service.UploadTournament(1L, "Чемпионат России", fullPath);
+            Boolean result = sessionFactory.withSession(session -> {
+                MatchUploadService service = new MatchUploadService(session);
+                return service.UploadTournament(1L, "Чемпионат России", fullPath);
+            }).await().atMost(Duration.ofMinutes(2));
             Assertions.assertTrue(result, "UploadTournament should succeed");
-        } catch (RuntimeException exception) {
-            throw exception;
         } finally {
-            session.close();
             sessionFactory.close();
         }
     }
@@ -143,17 +124,15 @@ public class DatabaseContextTest {
         validateConnectionParams(dbUrl, dbUser, dbPassword);
 
         String dataRoot = buildDataRoot(properties);
-        Configuration configuration = buildConfiguration(dbUrl, dbUser, dbPassword, "validate");
-
-        SessionFactory sessionFactory = configuration.buildSessionFactory();
-        Session session = sessionFactory.openSession();
-
+        Mutiny.SessionFactory sessionFactory = buildSessionFactory(dbUrl, dbUser, dbPassword, "validate");
         try {
-            MatchUploadService service = new MatchUploadService(session);
             int processed = 0;
             try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(dataRoot), "*.json")) {
                 for (Path file : stream) {
-                    boolean result = service.UploadTournament(1L, "Чемпионат России", file.toString());
+                    Boolean result = sessionFactory.withSession(session -> {
+                        MatchUploadService service = new MatchUploadService(session);
+                        return service.UploadTournament(1L, "Чемпионат России", file.toString());
+                    }).await().atMost(Duration.ofMinutes(2));
                     Assertions.assertTrue(result, "UploadTournament should succeed for " + file.getFileName());
                     processed++;
                 }
@@ -163,7 +142,6 @@ public class DatabaseContextTest {
 
             Assertions.assertTrue(processed > 0, "No json files found in " + dataRoot);
         } finally {
-            session.close();
             sessionFactory.close();
         }
     }
@@ -224,21 +202,38 @@ public class DatabaseContextTest {
         return tournament;
     }
 
-    private Configuration buildConfiguration(String dbUrl, String dbUser, String dbPassword, String hbm2ddlAuto) {
-        return new Configuration()
+    private Mutiny.SessionFactory buildSessionFactory(String dbUrl, String dbUser, String dbPassword, String hbm2ddlAuto) {
+        Configuration configuration = new Configuration()
                 .addAnnotatedClass(League.class)
                 .addAnnotatedClass(Tournament.class)
                 .addAnnotatedClass(Stage.class)
                 .addAnnotatedClass(Team.class)
-                .addAnnotatedClass(Match.class)
-                .setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
-                .setProperty("hibernate.connection.driver_class", "org.postgresql.Driver")
-                .setProperty("hibernate.connection.url", dbUrl)
-                .setProperty("hibernate.connection.username", dbUser)
-                .setProperty("hibernate.connection.password", dbPassword)
-                .setProperty("hibernate.default_schema", "football")
-                .setProperty("hibernate.globally_quoted_identifiers", "true")
-                .setProperty("hibernate.hbm2ddl.auto", hbm2ddlAuto);
+                .addAnnotatedClass(Match.class);
+
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+        settings.put("hibernate.connection.url", normalizeReactiveUrl(dbUrl));
+        settings.put("hibernate.connection.username", dbUser);
+        settings.put("hibernate.connection.password", dbPassword);
+        settings.put("hibernate.default_schema", "football");
+        settings.put("hibernate.globally_quoted_identifiers", "true");
+        settings.put("hibernate.hbm2ddl.auto", hbm2ddlAuto);
+
+        ServiceRegistry registry = new ReactiveServiceRegistryBuilder()
+                .applySettings(settings)
+                .build();
+        return configuration.buildSessionFactory(registry)
+                .unwrap(Mutiny.SessionFactory.class);
+    }
+
+    private String normalizeReactiveUrl(String dbUrl) {
+        if (dbUrl == null) {
+            return null;
+        }
+        if (dbUrl.startsWith("jdbc:")) {
+            return dbUrl.substring("jdbc:".length());
+        }
+        return dbUrl;
     }
 
     private void validateConnectionParams(String dbUrl, String dbUser, String dbPassword) {

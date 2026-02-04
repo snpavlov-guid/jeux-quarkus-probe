@@ -7,118 +7,132 @@ import com.jeuxwebapi.models.TeamUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class TeamService {
     @Inject
-    EntityManager entityManager;
+    Mutiny.SessionFactory sessionFactory;
 
-    public ServiceListResult<TeamDto> findTeams(String name, Integer skip, Integer size, String order) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Team> cq = cb.createQuery(Team.class);
-        Root<Team> root = cq.from(Team.class);
+    public Uni<ServiceListResult<TeamDto>> findTeams(String name, Integer skip, Integer size, String order) {
+        return sessionFactory.withSession(session -> {
+            CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
+            CriteriaQuery<Team> cq = cb.createQuery(Team.class);
+            Root<Team> root = cq.from(Team.class);
 
-        List<Predicate> predicates = buildPredicates(cb, root, name);
-        if (!predicates.isEmpty()) {
-            cq.where(predicates.toArray(new Predicate[0]));
-        }
+            List<Predicate> predicates = buildPredicates(cb, root, name);
+            if (!predicates.isEmpty()) {
+                cq.where(predicates.toArray(new Predicate[0]));
+            }
 
-        if (QueryUtils.isDesc(order)) {
-            cq.orderBy(cb.desc(root.get("Name")), cb.asc(root.get("Id")));
-        } else {
-            cq.orderBy(cb.asc(root.get("Name")), cb.asc(root.get("Id")));
-        }
+            if (QueryUtils.isDesc(order)) {
+                cq.orderBy(cb.desc(root.get("Name")), cb.asc(root.get("Id")));
+            } else {
+                cq.orderBy(cb.asc(root.get("Name")), cb.asc(root.get("Id")));
+            }
 
-        TypedQuery<Team> query = entityManager.createQuery(cq);
-        QueryUtils.applyPaging(query, skip, size);
+            Mutiny.SelectionQuery<Team> query = session.createQuery(cq);
+            QueryUtils.applyPaging(query, skip, size);
 
-        List<TeamDto> items = query.getResultList()
-                .stream()
-                .map(TeamService::toDto)
-                .toList();
-
-        int total = countTeams(name);
-        ServiceListResult<TeamDto> result = new ServiceListResult<>();
-        result.setResult(true);
-        result.setItems(items);
-        result.setTotal(total);
-        return result;
+            return query.getResultList()
+                    .map(items -> items.stream().map(TeamService::toDto).toList())
+                    .chain(items -> countTeams(session, name)
+                            .map(total -> {
+                                ServiceListResult<TeamDto> result = new ServiceListResult<>();
+                                result.setResult(true);
+                                result.setItems(items);
+                                result.setTotal(total);
+                                return result;
+                            }));
+        });
     }
 
-    public ServiceDataResult<TeamDto> findTeamById(long id) {
-        Team team = entityManager.find(Team.class, id);
-        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
-        if (team == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
-            return result;
-        }
-        result.setResult(true);
-        result.setData(toDto(team));
-        return result;
+    public Uni<ServiceDataResult<TeamDto>> findTeamById(long id) {
+        return sessionFactory.withSession(session -> session.find(Team.class, id)
+                .map(team -> {
+                    ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+                    if (team == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
+                        return result;
+                    }
+                    result.setResult(true);
+                    result.setData(toDto(team));
+                    return result;
+                }));
     }
 
-    public ServiceDataResult<TeamDto> createTeam(TeamCreateDto createDto) {
-        Team team = new Team();
-        team.setName(createDto.getName());
-        team.setShortName(createDto.getShortName());
-        team.setCity(createDto.getCity());
-        team.setLogoUrl(createDto.getLogoUrl());
-        entityManager.persist(team);
-        entityManager.flush();
-
-        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
-        result.setResult(true);
-        result.setData(toDto(team));
-        return result;
+    public Uni<ServiceDataResult<TeamDto>> createTeam(TeamCreateDto createDto) {
+        return sessionFactory.withTransaction((session, tx) -> {
+            Team team = new Team();
+            team.setName(createDto.getName());
+            team.setShortName(createDto.getShortName());
+            team.setCity(createDto.getCity());
+            team.setLogoUrl(createDto.getLogoUrl());
+            return session.persist(team)
+                    .chain(session::flush)
+                    .replaceWith(() -> {
+                        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+                        result.setResult(true);
+                        result.setData(toDto(team));
+                        return result;
+                    });
+        });
     }
 
-    public ServiceDataResult<TeamDto> updateTeam(TeamUpdateDto updateDto) {
-        Team team = entityManager.find(Team.class, updateDto.getId());
-        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
-        if (team == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", updateDto.getId()));
-            return result;
-        }
-        team.setName(updateDto.getName());
-        team.setShortName(updateDto.getShortName());
-        team.setCity(updateDto.getCity());
-        team.setLogoUrl(updateDto.getLogoUrl());
-        entityManager.flush();
-        result.setResult(true);
-        result.setData(toDto(team));
-        return result;
+    public Uni<ServiceDataResult<TeamDto>> updateTeam(TeamUpdateDto updateDto) {
+        return sessionFactory.withTransaction((session, tx) -> session.find(Team.class, updateDto.getId())
+                .chain(team -> {
+                    ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+                    if (team == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", updateDto.getId()));
+                        return Uni.createFrom().item(result);
+                    }
+                    team.setName(updateDto.getName());
+                    team.setShortName(updateDto.getShortName());
+                    team.setCity(updateDto.getCity());
+                    team.setLogoUrl(updateDto.getLogoUrl());
+                    return session.flush()
+                            .replaceWith(() -> {
+                                result.setResult(true);
+                                result.setData(toDto(team));
+                                return result;
+                            });
+                }));
     }
 
-    public ServiceDataResult<TeamDto> deleteTeam(long id) {
-        Team team = entityManager.find(Team.class, id);
-        ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
-        if (team == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
-            return result;
-        }
-        TeamDto dto = toDto(team);
-        entityManager.remove(team);
-        entityManager.flush();
-        result.setResult(true);
-        result.setData(dto);
-        return result;
+    public Uni<ServiceDataResult<TeamDto>> deleteTeam(long id) {
+        return sessionFactory.withTransaction((session, tx) -> session.find(Team.class, id)
+                .chain(team -> {
+                    ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
+                    if (team == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Team' с id: %d не найдена!", id));
+                        return Uni.createFrom().item(result);
+                    }
+                    TeamDto dto = toDto(team);
+                    return session.remove(team)
+                            .chain(session::flush)
+                            .replaceWith(() -> {
+                                result.setResult(true);
+                                result.setData(dto);
+                                return result;
+                            });
+                }));
     }
 
-    private int countTeams(String name) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+    private Uni<Integer> countTeams(Mutiny.Session session, String name) {
+        CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Team> root = cq.from(Team.class);
         List<Predicate> predicates = buildPredicates(cb, root, name);
@@ -126,8 +140,8 @@ public class TeamService {
         if (!predicates.isEmpty()) {
             cq.where(predicates.toArray(new Predicate[0]));
         }
-        Long total = entityManager.createQuery(cq).getSingleResult();
-        return total == null ? 0 : total.intValue();
+        return session.createQuery(cq).getSingleResult()
+                .map(total -> total == null ? 0 : total.intValue());
     }
 
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Team> root, String name) {

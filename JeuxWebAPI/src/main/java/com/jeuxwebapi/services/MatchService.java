@@ -8,10 +8,9 @@ import com.jeuxwebapi.models.MatchUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.util.QueryUtils;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
@@ -22,13 +21,14 @@ import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class MatchService {
     @Inject
-    EntityManager entityManager;
+    Mutiny.SessionFactory sessionFactory;
 
-    public ServiceListResult<MatchDto> findMatches(
+    public Uni<ServiceListResult<MatchDto>> findMatches(
             Long leagueId,
             Long tournamentId,
             Long stageId,
@@ -40,127 +40,142 @@ public class MatchService {
             Integer size,
             String order
     ) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Match> cq = cb.createQuery(Match.class);
-        Root<Match> root = cq.from(Match.class);
+        return sessionFactory.withSession(session -> {
+            CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
+            CriteriaQuery<Match> cq = cb.createQuery(Match.class);
+            Root<Match> root = cq.from(Match.class);
 
-        List<Predicate> predicates = buildPredicates(
-                cb,
-                root,
-                leagueId,
-                tournamentId,
-                stageId,
-                hTeamName,
-                gTeamName,
-                tours,
-                date
-        );
+            List<Predicate> predicates = buildPredicates(
+                    cb,
+                    root,
+                    leagueId,
+                    tournamentId,
+                    stageId,
+                    hTeamName,
+                    gTeamName,
+                    tours,
+                    date
+            );
 
-        if (!predicates.isEmpty()) {
-            cq.where(predicates.toArray(new Predicate[0]));
-        }
+            if (!predicates.isEmpty()) {
+                cq.where(predicates.toArray(new Predicate[0]));
+            }
 
-        if (QueryUtils.isDesc(order)) {
-            cq.orderBy(cb.desc(root.get("Date")), cb.desc(root.get("Id")));
-        } else {
-            cq.orderBy(cb.asc(root.get("Date")), cb.asc(root.get("Id")));
-        }
+            if (QueryUtils.isDesc(order)) {
+                cq.orderBy(cb.desc(root.get("Date")), cb.desc(root.get("Id")));
+            } else {
+                cq.orderBy(cb.asc(root.get("Date")), cb.asc(root.get("Id")));
+            }
 
-        TypedQuery<Match> query = entityManager.createQuery(cq);
-        QueryUtils.applyPaging(query, skip, size);
+            Mutiny.SelectionQuery<Match> query = session.createQuery(cq);
+            QueryUtils.applyPaging(query, skip, size);
 
-        List<MatchDto> items = query.getResultList()
-                .stream()
-                .map(MatchService::toDto)
-                .toList();
-
-        int total = countMatches(leagueId, tournamentId, stageId, hTeamName, gTeamName, tours, date);
-        ServiceListResult<MatchDto> result = new ServiceListResult<>();
-        result.setResult(true);
-        result.setItems(items);
-        result.setTotal(total);
-        return result;
+            return query.getResultList()
+                    .map(items -> items.stream().map(MatchService::toDto).toList())
+                    .chain(items -> countMatches(session, leagueId, tournamentId, stageId, hTeamName, gTeamName, tours, date)
+                            .map(total -> {
+                                ServiceListResult<MatchDto> result = new ServiceListResult<>();
+                                result.setResult(true);
+                                result.setItems(items);
+                                result.setTotal(total);
+                                return result;
+                            }));
+        });
     }
 
-    public ServiceDataResult<MatchDto> findMatchById(long id) {
-        Match match = entityManager.find(Match.class, id);
-        ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
-        if (match == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", id));
-            return result;
-        }
-        result.setResult(true);
-        result.setData(toDto(match));
-        return result;
+    public Uni<ServiceDataResult<MatchDto>> findMatchById(long id) {
+        return sessionFactory.withSession(session -> session.find(Match.class, id)
+                .map(match -> {
+                    ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
+                    if (match == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", id));
+                        return result;
+                    }
+                    result.setResult(true);
+                    result.setData(toDto(match));
+                    return result;
+                }));
     }
 
-    public ServiceDataResult<MatchDto> createMatch(MatchCreateDto createDto) {
-        Match match = new Match();
-        match.setTour(createDto.getTour());
-        match.setRound(createDto.getRound());
-        match.setDate(createDto.getDate());
-        match.setHScore(createDto.getHScore());
-        match.setGScore(createDto.getGScore());
-        match.setCity(createDto.getCity());
-        match.setStadium(createDto.getStadium());
-        match.setLeagueId(createDto.getLeagueId());
-        match.setTournamentId(createDto.getTournamentId());
-        match.setStageId(createDto.getStageId());
-        match.setHTeamId(createDto.getHTeamId());
-        match.setGTeamId(createDto.getGTeamId());
-        entityManager.persist(match);
-        entityManager.flush();
-
-        ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
-        result.setResult(true);
-        result.setData(toDto(match));
-        return result;
+    public Uni<ServiceDataResult<MatchDto>> createMatch(MatchCreateDto createDto) {
+        return sessionFactory.withTransaction((session, tx) -> {
+            Match match = new Match();
+            match.setTour(createDto.getTour());
+            match.setRound(createDto.getRound());
+            match.setDate(createDto.getDate());
+            match.setHScore(createDto.getHScore());
+            match.setGScore(createDto.getGScore());
+            match.setCity(createDto.getCity());
+            match.setStadium(createDto.getStadium());
+            match.setLeagueId(createDto.getLeagueId());
+            match.setTournamentId(createDto.getTournamentId());
+            match.setStageId(createDto.getStageId());
+            match.setHTeamId(createDto.getHTeamId());
+            match.setGTeamId(createDto.getGTeamId());
+            return session.persist(match)
+                    .chain(session::flush)
+                    .replaceWith(() -> {
+                        ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
+                        result.setResult(true);
+                        result.setData(toDto(match));
+                        return result;
+                    });
+        });
     }
 
-    public ServiceDataResult<MatchDto> updateMatch(MatchUpdateDto updateDto) {
-        Match match = entityManager.find(Match.class, updateDto.getId());
-        ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
-        if (match == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", updateDto.getId()));
-            return result;
-        }
-        match.setTour(updateDto.getTour());
-        match.setRound(updateDto.getRound());
-        match.setDate(updateDto.getDate());
-        match.setHScore(updateDto.getHScore());
-        match.setGScore(updateDto.getGScore());
-        match.setCity(updateDto.getCity());
-        match.setStadium(updateDto.getStadium());
-        match.setLeagueId(updateDto.getLeagueId());
-        match.setTournamentId(updateDto.getTournamentId());
-        match.setStageId(updateDto.getStageId());
-        match.setHTeamId(updateDto.getHTeamId());
-        match.setGTeamId(updateDto.getGTeamId());
-        entityManager.flush();
-        result.setResult(true);
-        result.setData(toDto(match));
-        return result;
+    public Uni<ServiceDataResult<MatchDto>> updateMatch(MatchUpdateDto updateDto) {
+        return sessionFactory.withTransaction((session, tx) -> session.find(Match.class, updateDto.getId())
+                .chain(match -> {
+                    ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
+                    if (match == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", updateDto.getId()));
+                        return Uni.createFrom().item(result);
+                    }
+                    match.setTour(updateDto.getTour());
+                    match.setRound(updateDto.getRound());
+                    match.setDate(updateDto.getDate());
+                    match.setHScore(updateDto.getHScore());
+                    match.setGScore(updateDto.getGScore());
+                    match.setCity(updateDto.getCity());
+                    match.setStadium(updateDto.getStadium());
+                    match.setLeagueId(updateDto.getLeagueId());
+                    match.setTournamentId(updateDto.getTournamentId());
+                    match.setStageId(updateDto.getStageId());
+                    match.setHTeamId(updateDto.getHTeamId());
+                    match.setGTeamId(updateDto.getGTeamId());
+                    return session.flush()
+                            .replaceWith(() -> {
+                                result.setResult(true);
+                                result.setData(toDto(match));
+                                return result;
+                            });
+                }));
     }
 
-    public ServiceDataResult<MatchDto> deleteMatch(long id) {
-        Match match = entityManager.find(Match.class, id);
-        ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
-        if (match == null) {
-            result.setResult(false);
-            result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", id));
-            return result;
-        }
-        MatchDto dto = toDto(match);
-        entityManager.remove(match);
-        entityManager.flush();
-        result.setResult(true);
-        result.setData(dto);
-        return result;
+    public Uni<ServiceDataResult<MatchDto>> deleteMatch(long id) {
+        return sessionFactory.withTransaction((session, tx) -> session.find(Match.class, id)
+                .chain(match -> {
+                    ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
+                    if (match == null) {
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Match' с id: %d не найдена!", id));
+                        return Uni.createFrom().item(result);
+                    }
+                    MatchDto dto = toDto(match);
+                    return session.remove(match)
+                            .chain(session::flush)
+                            .replaceWith(() -> {
+                                result.setResult(true);
+                                result.setData(dto);
+                                return result;
+                            });
+                }));
     }
 
-    private int countMatches(
+    private Uni<Integer> countMatches(
+            Mutiny.Session session,
             Long leagueId,
             Long tournamentId,
             Long stageId,
@@ -169,7 +184,7 @@ public class MatchService {
             List<Integer> tours,
             LocalDate date
     ) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Match> root = cq.from(Match.class);
         List<Predicate> predicates = buildPredicates(
@@ -187,8 +202,8 @@ public class MatchService {
         if (!predicates.isEmpty()) {
             cq.where(predicates.toArray(new Predicate[0]));
         }
-        Long total = entityManager.createQuery(cq).getSingleResult();
-        return total == null ? 0 : total.intValue();
+        return session.createQuery(cq).getSingleResult()
+                .map(total -> total == null ? 0 : total.intValue());
     }
 
     private List<Predicate> buildPredicates(

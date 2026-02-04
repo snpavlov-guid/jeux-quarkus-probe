@@ -9,9 +9,9 @@ import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.MatchService;
 import com.jeuxwebapi.util.QueryUtils;
 import io.quarkus.security.Authenticated;
+import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -34,7 +34,7 @@ public class MatchResource {
     MatchService matchService;
 
     @GET
-    public ServiceListResult<MatchDto> getMatchs(
+    public Uni<ServiceListResult<MatchDto>> getMatchs(
             @QueryParam("leagueId") Long leagueId,
             @QueryParam("tournamentId") Long tournamentId,
             @QueryParam("stageId") Long stageId,
@@ -66,57 +66,51 @@ public class MatchResource {
 
     @GET
     @Path("/{id}")
-    public ServiceDataResult<MatchDto> getMatchById(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<MatchDto>> getMatchById(@PathParam("id") long id) {
         return matchService.findMatchById(id);
     }
 
     @POST
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> createMatch(MatchCreateDto createDto) {
+    public Uni<ServiceDataResult<MatchDto>> createMatch(MatchCreateDto createDto) {
         return matchService.createMatch(createDto);
     }
 
     @POST
     @Path("/create")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> createMatchAlt(MatchCreateDto createDto) {
+    public Uni<ServiceDataResult<MatchDto>> createMatchAlt(MatchCreateDto createDto) {
         return matchService.createMatch(createDto);
     }
 
     @PUT
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> updateMatch(MatchUpdateDto updateDto) {
+    public Uni<ServiceDataResult<MatchDto>> updateMatch(MatchUpdateDto updateDto) {
         return matchService.updateMatch(updateDto);
     }
 
     @POST
     @Path("/update/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> updateMatchAlt(@PathParam("id") long id, MatchUpdateDto updateDto) {
+    public Uni<ServiceDataResult<MatchDto>> updateMatchAlt(@PathParam("id") long id, MatchUpdateDto updateDto) {
         ServiceDataResult<MatchDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
-            return idMismatch;
+            return Uni.createFrom().item(idMismatch);
         }
         return matchService.updateMatch(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> deleteMatch(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<MatchDto>> deleteMatch(@PathParam("id") long id) {
         return matchService.deleteMatch(id);
     }
 
     @POST
     @Path("/delete/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<MatchDto> deleteMatchAlt(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<MatchDto>> deleteMatchAlt(@PathParam("id") long id) {
         return matchService.deleteMatch(id);
     }
     private ServiceDataResult<MatchDto> validateUpdateId(long id, MatchUpdateDto updateDto) {

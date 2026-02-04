@@ -8,10 +8,10 @@ import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.LeagueService;
 import io.quarkus.security.Authenticated;
+import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -35,7 +35,7 @@ public class LeagueResource {
     long rfLeagueId;
 
     @GET
-    public ServiceListResult<LeagueDto> getLeagues(
+    public Uni<ServiceListResult<LeagueDto>> getLeagues(
             @QueryParam("name") String name,
             @QueryParam("skip") Integer skip,
             @QueryParam("size") Integer size,
@@ -47,63 +47,57 @@ public class LeagueResource {
 
     @GET
     @Path("/{id}")
-    public ServiceDataResult<LeagueDto> getLeagueById(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<LeagueDto>> getLeagueById(@PathParam("id") long id) {
         return leagueService.findLeagueById(id);
     }
 
     @GET
     @Path("/rpl")
-    public ServiceDataResult<LeagueDto> getRPLeague() {
+    public Uni<ServiceDataResult<LeagueDto>> getRPLeague() {
         return leagueService.findLeagueById(rfLeagueId);
     }
 
     @POST
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> createLeague(LeagueCreateDto createDto) {
+    public Uni<ServiceDataResult<LeagueDto>> createLeague(LeagueCreateDto createDto) {
         return leagueService.createLeague(createDto);
     }
 
     @POST
     @Path("/create")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> createLeagueAlt(LeagueCreateDto createDto) {
+    public Uni<ServiceDataResult<LeagueDto>> createLeagueAlt(LeagueCreateDto createDto) {
         return leagueService.createLeague(createDto);
     }
 
     @PUT
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> updateLeague(LeagueUpdateDto updateDto) {
+    public Uni<ServiceDataResult<LeagueDto>> updateLeague(LeagueUpdateDto updateDto) {
         return leagueService.updateLeague(updateDto);
     }
 
     @POST
     @Path("/update/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> updateLeagueAlt(@PathParam("id") long id, LeagueUpdateDto updateDto) {
+    public Uni<ServiceDataResult<LeagueDto>> updateLeagueAlt(@PathParam("id") long id, LeagueUpdateDto updateDto) {
         ServiceDataResult<LeagueDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
-            return idMismatch;
+            return Uni.createFrom().item(idMismatch);
         }
         return leagueService.updateLeague(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> deleteLeague(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<LeagueDto>> deleteLeague(@PathParam("id") long id) {
         return leagueService.deleteLeague(id);
     }
 
     @POST
     @Path("/delete/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<LeagueDto> deleteLeagueAlt(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<LeagueDto>> deleteLeagueAlt(@PathParam("id") long id) {
         return leagueService.deleteLeague(id);
     }
     private ServiceDataResult<LeagueDto> validateUpdateId(long id, LeagueUpdateDto updateDto) {
