@@ -8,9 +8,9 @@ import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TeamService;
 import io.quarkus.security.Authenticated;
+import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -31,7 +31,7 @@ public class TeamResource {
     TeamService teamService;
 
     @GET
-    public ServiceListResult<TeamDto> getTeams(
+    public Uni<ServiceListResult<TeamDto>> getTeams(
             @QueryParam("name") String name,
             @QueryParam("skip") Integer skip,
             @QueryParam("size") Integer size,
@@ -43,57 +43,51 @@ public class TeamResource {
 
     @GET
     @Path("/{id}")
-    public ServiceDataResult<TeamDto> getTeamById(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TeamDto>> getTeamById(@PathParam("id") long id) {
         return teamService.findTeamById(id);
     }
 
     @POST
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> createTeam(TeamCreateDto createDto) {
+    public Uni<ServiceDataResult<TeamDto>> createTeam(TeamCreateDto createDto) {
         return teamService.createTeam(createDto);
     }
 
     @POST
     @Path("/create")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> createTeamAlt(TeamCreateDto createDto) {
+    public Uni<ServiceDataResult<TeamDto>> createTeamAlt(TeamCreateDto createDto) {
         return teamService.createTeam(createDto);
     }
 
     @PUT
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> updateTeam(TeamUpdateDto updateDto) {
+    public Uni<ServiceDataResult<TeamDto>> updateTeam(TeamUpdateDto updateDto) {
         return teamService.updateTeam(updateDto);
     }
 
     @POST
     @Path("/update/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> updateTeamAlt(@PathParam("id") long id, TeamUpdateDto updateDto) {
+    public Uni<ServiceDataResult<TeamDto>> updateTeamAlt(@PathParam("id") long id, TeamUpdateDto updateDto) {
         ServiceDataResult<TeamDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
-            return idMismatch;
+            return Uni.createFrom().item(idMismatch);
         }
         return teamService.updateTeam(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> deleteTeam(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TeamDto>> deleteTeam(@PathParam("id") long id) {
         return teamService.deleteTeam(id);
     }
 
     @POST
     @Path("/delete/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TeamDto> deleteTeamAlt(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TeamDto>> deleteTeamAlt(@PathParam("id") long id) {
         return teamService.deleteTeam(id);
     }
     private ServiceDataResult<TeamDto> validateUpdateId(long id, TeamUpdateDto updateDto) {

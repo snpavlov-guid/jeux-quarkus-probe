@@ -2,21 +2,14 @@ package Services;
 
 import Entities.League;
 import Entities.Match;
-import Entities.QLeague;
-import Entities.QMatch;
-import Entities.QStage;
-import Entities.QTeam;
-import Entities.QTournament;
 import Entities.Stage;
 import Entities.Team;
 import Entities.Tournament;
 import Models.RawMatchInfo;
-import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.Tuple;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -32,48 +25,40 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.time.temporal.ChronoField;
-import org.hibernate.Session;
+import org.hibernate.reactive.mutiny.Mutiny;
 
 public class MatchUploadService {
-    private final Session session;
+    private final Mutiny.Session session;
 
-    public MatchUploadService(Session session) {
+    public MatchUploadService(Mutiny.Session session) {
         this.session = session;
     }
 
-    public League UpsertLeague(String leagueName) {
-        QLeague qLeague = QLeague.league;
-        JPAQueryFactory queryFactory = new JPAQueryFactory(session);
-
-        League existing = queryFactory
-                .selectFrom(qLeague)
-                .where(qLeague.Name.equalsIgnoreCase(leagueName))
-                .fetchFirst();
-
-        if (existing != null) {
-            return existing;
-        }
-
-        queryFactory
-                .insert(qLeague)
-                .columns(qLeague.Name)
-                .values(leagueName)
-                .execute();
-
-        League created = queryFactory
-                .selectFrom(qLeague)
-                .where(qLeague.Name.equalsIgnoreCase(leagueName))
-                .fetchFirst();
-
-        return created;
+    public Uni<League> UpsertLeague(String leagueName) {
+        String normalized = leagueName == null ? "" : leagueName.toLowerCase(Locale.ROOT);
+        return session.createQuery(
+                        "from League l where lower(l.Name) = :name",
+                        League.class
+                )
+                .setParameter("name", normalized)
+                .getResultList()
+                .map(list -> list.isEmpty() ? null : list.get(0))
+                .chain(existing -> {
+                    if (existing != null) {
+                        return Uni.createFrom().item(existing);
+                    }
+                    League league = new League();
+                    league.setName(leagueName);
+                    return session.persist(league)
+                            .chain(session::flush)
+                            .replaceWith(league);
+                });
     }
 
-    public Tournament UpgradeTournament(Tournament turnir) {
-        QTournament qTournament = QTournament.tournament;
+    public Uni<Tournament> UpgradeTournament(Tournament turnir) {
         Long leagueId = turnir.getLeagueId();
         League league = turnir.getLeague();
         Integer fnYear = turnir.getFnYear();
-        JPAQueryFactory queryFactory = new JPAQueryFactory(session);
 
         if (leagueId == null && league != null) {
             leagueId = league.getId();
@@ -83,165 +68,122 @@ public class MatchUploadService {
         if (leagueId == null) {
             throw new IllegalArgumentException("Tournament LeagueId is required");
         }
+        final Long finalLeagueId = leagueId;
 
-        BooleanBuilder predicate = new BooleanBuilder()
-                .and(qTournament.LeagueId.eq(leagueId))
-                .and(qTournament.Name.equalsIgnoreCase(turnir.getName()))
-                .and(qTournament.StYear.eq(turnir.getStYear()));
-
+        String baseQuery = "from Tournament t where t.LeagueId = :leagueId and lower(t.Name) = :name and t.StYear = :stYear";
+        String queryText = fnYear == null ? baseQuery + " and t.FnYear is null" : baseQuery + " and t.FnYear = :fnYear";
+        Mutiny.SelectionQuery<Tournament> query = session.createQuery(queryText, Tournament.class)
+                .setParameter("leagueId", finalLeagueId)
+                .setParameter("name", turnir.getName().toLowerCase(Locale.ROOT))
+                .setParameter("stYear", turnir.getStYear());
         if (fnYear != null) {
-            predicate.and(qTournament.FnYear.eq(fnYear));
+            query.setParameter("fnYear", fnYear);
         }
 
-        Tournament existing = queryFactory
-                .selectFrom(qTournament)
-                .where(predicate)
-                .fetchFirst();
+        return query.getResultList()
+                .map(list -> list.isEmpty() ? null : list.get(0))
+                .chain(existing -> {
+                    Uni<Void> deleteStep = existing == null
+                            ? Uni.createFrom().voidItem()
+                            : session.remove(existing).chain(session::flush);
 
-        if (existing != null) {
-            queryFactory
-                    .delete(qTournament)
-                    .where(qTournament.Id.eq(existing.getId()))
-                    .execute();
-        }
+                    Tournament toPersist = new Tournament();
+                    toPersist.setLeagueId(finalLeagueId);
+                    toPersist.setName(turnir.getName());
+                    toPersist.setStYear(turnir.getStYear());
+                    toPersist.setFnYear(fnYear);
 
-        if (fnYear == null) {
-            queryFactory
-                    .insert(qTournament)
-                    .columns(qTournament.LeagueId, qTournament.Name, qTournament.StYear)
-                    .values(leagueId, turnir.getName(), turnir.getStYear())
-                    .execute();
-        } else {
-            queryFactory
-                    .insert(qTournament)
-                    .columns(qTournament.LeagueId, qTournament.Name, qTournament.StYear, qTournament.FnYear)
-                    .values(leagueId, turnir.getName(), turnir.getStYear(), fnYear)
-                    .execute();
-        }
-
-        return queryFactory
-                .selectFrom(qTournament)
-                .where(predicate)
-                .fetchFirst();
+                    return deleteStep
+                            .chain(() -> session.persist(toPersist))
+                            .chain(session::flush)
+                            .replaceWith(toPersist);
+                });
     }
 
-    public boolean SaveTournamentData(Tournament turnir, List<Stage> stages) {
-        final int batchSize = 50;
-
-        try {
-            int stageIndex = 0;
-            for (Stage stage : stages) {
-                session.persist(stage);
-                stageIndex++;
-                if (stageIndex % batchSize == 0) {
-                    session.flush();
-                    session.clear();
-                }
-            }
-            session.flush();
-
-            int matchIndex = 0;
-            for (Stage stage : stages) {
-                Long stageId = stage.getId() > 0 ? stage.getId() : null;
-                for (Match match : stage.getMatches()) {
-                    if (match.getStageId() == null) {
-                        match.setStageId(stageId);
-                    }
-                    session.persist(match);
-                    matchIndex++;
-                    if (matchIndex % batchSize == 0) {
-                        session.flush();
-                        session.clear();
-                    }
-                }
-            }
-            session.flush();
-
-            return true;
-        } catch (RuntimeException exception) {
-            throw exception;
+    public Uni<Boolean> SaveTournamentData(Tournament turnir, List<Stage> stages) {
+        Uni<Void> chain = Uni.createFrom().voidItem();
+        for (Stage stage : stages) {
+            chain = chain.chain(() -> session.persist(stage));
         }
+        return chain
+                .chain(session::flush)
+                .chain(() -> {
+                    Uni<Void> matchChain = Uni.createFrom().voidItem();
+                    for (Stage stage : stages) {
+                        Long stageId = stage.getId();
+                        for (Match match : stage.getMatches()) {
+                            if (match.getStageId() == null) {
+                                match.setStageId(stageId);
+                            }
+                            matchChain = matchChain.chain(() -> session.persist(match));
+                        }
+                    }
+                    return matchChain;
+                })
+                .chain(session::flush)
+                .replaceWith(true);
     }
 
-    public boolean SaveTeams(List<Team> teams) {
+    public Uni<Boolean> SaveTeams(List<Team> teams) {
         if (teams == null || teams.isEmpty()) {
-            return true;
+            return Uni.createFrom().item(true);
         }
 
-        JPAQueryFactory queryFactory = new JPAQueryFactory(session);
-        QTeam qTeam = QTeam.team;
-
-        try {
-            final int batchSize = 50;
-            Map<String, Team> teamsByName = new HashMap<>();
-            List<String> nameKeys = new ArrayList<>(teams.size());
-
-            for (Team team : teams) {
-                String name = team.getName();
-                String key = name.toLowerCase(Locale.ROOT);
-                teamsByName.put(key, team);
-                nameKeys.add(key);
-            }
-
-            List<Tuple> existing = queryFactory
-                    .select(qTeam.Id, qTeam.Name)
-                    .from(qTeam)
-                    .where(qTeam.Name.lower().in(nameKeys))
-                    .fetch();
-
-            Map<String, Long> existingIds = new HashMap<>();
-            for (Tuple row : existing) {
-                String name = row.get(qTeam.Name);
-                Long id = row.get(qTeam.Id);
-                if (name != null && id != null) {
-                    existingIds.put(name.toLowerCase(Locale.ROOT), id);
-                }
-            }
-
-            List<Team> toInsert = new ArrayList<>();
-            List<String> insertedKeys = new ArrayList<>();
-            for (Map.Entry<String, Team> entry : teamsByName.entrySet()) {
-                if (!existingIds.containsKey(entry.getKey())) {
-                    toInsert.add(entry.getValue());
-                    insertedKeys.add(entry.getKey());
-                }
-            }
-
-            if (!toInsert.isEmpty()) {
-                int insertIndex = 0;
-                for (Team team : toInsert) {
-                    session.persist(team);
-                    insertIndex++;
-                    if (insertIndex % batchSize == 0) {
-                        session.flush();
-                        session.clear();
-                    }
-                }
-                session.flush();
-
-                for (Team team : toInsert) {
-                    String name = team.getName();
-                    Long id = team.getId();
-                    if (name != null && id != null) {
-                        existingIds.put(name.toLowerCase(Locale.ROOT), id);
-                    }
-                }
-            }
-
-            for (Team team : teams) {
-                Long id = existingIds.get(team.getName().toLowerCase(Locale.ROOT));
-                if (id != null) {
-                    team.setId(id);
-                }
-            }
-
-            return true;
-        } catch (RuntimeException exception) {
-            throw exception;
+        Map<String, Team> teamsByName = new HashMap<>();
+        List<String> nameKeys = new ArrayList<>(teams.size());
+        for (Team team : teams) {
+            String name = team.getName();
+            String key = name.toLowerCase(Locale.ROOT);
+            teamsByName.put(key, team);
+            nameKeys.add(key);
         }
+
+        return session.createQuery(
+                        "select t from Team t where lower(t.Name) in :names",
+                        Team.class
+                )
+                .setParameter("names", nameKeys)
+                .getResultList()
+                .chain(existing -> {
+                    Map<String, Long> existingIds = new HashMap<>();
+                    for (Team team : existing) {
+                        if (team.getName() != null && team.getId() > 0) {
+                            existingIds.put(team.getName().toLowerCase(Locale.ROOT), team.getId());
+                        }
+                    }
+
+                    List<Team> toInsert = new ArrayList<>();
+                    for (Map.Entry<String, Team> entry : teamsByName.entrySet()) {
+                        if (!existingIds.containsKey(entry.getKey())) {
+                            toInsert.add(entry.getValue());
+                        }
+                    }
+
+                    Uni<Void> insertChain = Uni.createFrom().voidItem();
+                    for (Team team : toInsert) {
+                        insertChain = insertChain.chain(() -> session.persist(team));
+                    }
+
+                    return insertChain
+                            .chain(session::flush)
+                            .replaceWith(() -> {
+                                for (Team team : toInsert) {
+                                    if (team.getName() != null && team.getId() > 0) {
+                                        existingIds.put(team.getName().toLowerCase(Locale.ROOT), team.getId());
+                                    }
+                                }
+                                for (Team team : teams) {
+                                    Long id = existingIds.get(team.getName().toLowerCase(Locale.ROOT));
+                                    if (id != null) {
+                                        team.setId(id);
+                                    }
+                                }
+                                return true;
+                            });
+                });
     }
 
-    public boolean UploadTournament(long leagueId, String turnirName, String turnirFilePath) {
+    public Uni<Boolean> UploadTournament(long leagueId, String turnirName, String turnirFilePath) {
         Tournament tournament = buildTournament(leagueId, turnirName, turnirFilePath);
         List<RawMatchInfo> rawMatches = readRawMatches(turnirFilePath);
         Map<String, Team> teamsByName = new HashMap<>();
@@ -284,40 +226,27 @@ public class MatchUploadService {
 
         List<Team> teams = new ArrayList<>(teamsByName.values());
         List<Stage> stages = new ArrayList<>(stagesByName.values());
-        int totalMatches = 0;
-        for (Stage stage : stages) {
-            totalMatches += stage.getMatches().size();
-        }
-        
-        org.hibernate.Transaction transaction = session.beginTransaction();
-        try {
-            if (!SaveTeams(teams)) {
-                transaction.rollback();
-                return false;
-            }
-            Tournament savedTournament = UpgradeTournament(tournament);
-            
-            if (savedTournament == null) {
-                transaction.rollback();
-                return false;
-            }
-            for (Stage stage : stages) {
-                stage.setLeagueId(leagueId);
-                stage.setTournamentId(savedTournament.getId());
-                for (Match match : stage.getMatches()) {
-                    adjustMatch(match, savedTournament.getLeagueId(), savedTournament.getId(), stage, teamsByName);
-                }
-            }
-            if (!SaveTournamentData(savedTournament, stages)) {
-                transaction.rollback();
-                return false;
-            }
-            transaction.commit();
-            return true;
-        } catch (RuntimeException exception) {
-            transaction.rollback();
-            throw exception;
-        }
+
+        return session.withTransaction(tx -> SaveTeams(teams)
+                .chain(savedTeams -> {
+                    if (!savedTeams) {
+                        return Uni.createFrom().item(false);
+                    }
+                    return UpgradeTournament(tournament)
+                            .chain(savedTournament -> {
+                                if (savedTournament == null) {
+                                    return Uni.createFrom().item(false);
+                                }
+                                for (Stage stage : stages) {
+                                    stage.setLeagueId(leagueId);
+                                    stage.setTournamentId(savedTournament.getId());
+                                    for (Match match : stage.getMatches()) {
+                                        adjustMatch(match, savedTournament.getLeagueId(), savedTournament.getId(), stage, teamsByName);
+                                    }
+                                }
+                                return SaveTournamentData(savedTournament, stages);
+                            });
+                }));
     }
 
     private Match mapMatch(RawMatchInfo rawMatch) {
@@ -443,7 +372,7 @@ public class MatchUploadService {
 
     private List<RawMatchInfo> readRawMatches(String turnirFilePath) {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        mapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
         try {
             return mapper.readValue(new File(turnirFilePath), new TypeReference<List<RawMatchInfo>>() {});
         } catch (IOException exception) {

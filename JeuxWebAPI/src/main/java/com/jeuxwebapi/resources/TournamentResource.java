@@ -8,10 +8,10 @@ import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.TournamentService;
 import io.quarkus.security.Authenticated;
+import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -35,7 +35,7 @@ public class TournamentResource {
     long rfLeagueId;
 
     @GET
-    public ServiceListResult<TournamentDto> getTournaments(
+    public Uni<ServiceListResult<TournamentDto>> getTournaments(
             @QueryParam("leagueId") Long leagueId,
             @QueryParam("season") Integer season,
             @QueryParam("skip") Integer skip,
@@ -47,7 +47,7 @@ public class TournamentResource {
 
     @GET
     @Path("/rpl")
-    public ServiceListResult<TournamentDto> getRPLTournaments(
+    public Uni<ServiceListResult<TournamentDto>> getRPLTournaments(
             @QueryParam("season") Integer season,
             @QueryParam("skip") Integer skip,
             @QueryParam("size") Integer size,
@@ -58,57 +58,51 @@ public class TournamentResource {
 
     @GET
     @Path("/{id}")
-    public ServiceDataResult<TournamentDto> getTournamentById(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TournamentDto>> getTournamentById(@PathParam("id") long id) {
         return tournamentService.findTournamentById(id);
     }
 
     @POST
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> createTournament(TournamentCreateDto createDto) {
+    public Uni<ServiceDataResult<TournamentDto>> createTournament(TournamentCreateDto createDto) {
         return tournamentService.createTournament(createDto);
     }
 
     @POST
     @Path("/create")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> createTournamentAlt(TournamentCreateDto createDto) {
+    public Uni<ServiceDataResult<TournamentDto>> createTournamentAlt(TournamentCreateDto createDto) {
         return tournamentService.createTournament(createDto);
     }
 
     @PUT
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> updateTournament(TournamentUpdateDto updateDto) {
+    public Uni<ServiceDataResult<TournamentDto>> updateTournament(TournamentUpdateDto updateDto) {
         return tournamentService.updateTournament(updateDto);
     }
 
     @POST
     @Path("/update/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> updateTournamentAlt(@PathParam("id") long id, TournamentUpdateDto updateDto) {
+    public Uni<ServiceDataResult<TournamentDto>> updateTournamentAlt(@PathParam("id") long id, TournamentUpdateDto updateDto) {
         ServiceDataResult<TournamentDto> idMismatch = validateUpdateId(id, updateDto);
         if (idMismatch != null) {
-            return idMismatch;
+            return Uni.createFrom().item(idMismatch);
         }
         return tournamentService.updateTournament(updateDto);
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> deleteTournament(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TournamentDto>> deleteTournament(@PathParam("id") long id) {
         return tournamentService.deleteTournament(id);
     }
 
     @POST
     @Path("/delete/{id}")
-    @Transactional
     @RolesAllowed({AppRoles.AppRole_Owner, AppRoles.AppRole_Contrib})
-    public ServiceDataResult<TournamentDto> deleteTournamentAlt(@PathParam("id") long id) {
+    public Uni<ServiceDataResult<TournamentDto>> deleteTournamentAlt(@PathParam("id") long id) {
         return tournamentService.deleteTournament(id);
     }
     private ServiceDataResult<TournamentDto> validateUpdateId(long id, TournamentUpdateDto updateDto) {

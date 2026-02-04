@@ -1,6 +1,6 @@
 package com.jeuxwebapi.util;
 
-import jakarta.persistence.TypedQuery;
+import org.hibernate.reactive.mutiny.Mutiny;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ public final class QueryUtils {
         return order != null && order.equalsIgnoreCase("desc");
     }
 
-    public static void applyPaging(TypedQuery<?> query, Integer skip, Integer size) {
+    public static void applyPaging(Mutiny.SelectionQuery<?> query, Integer skip, Integer size) {
         if (skip != null) {
             if (skip < 0) {
                 throw badRequest("skip must be >= 0");
