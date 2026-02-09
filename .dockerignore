@@ -1,0 +1,10 @@
+**/target/
+**/.mvn/
+**/mvnw*
+**/.git/
+**/.gitignore
+**/README.md
+**/DockerCompose/
+**/Docker/
+**/*Test/
+.DS_Store

@@ -15,6 +15,12 @@
 cd C:\Projects\X-Probes\JsrvProbe\JeuxSonde
 ```
 
+**Сборка и запуск через Docker Compose**
+```
+docker compose -f DockerCompose\jeux-docker-compose.yml build --no-cache 
+docker compose -f DockerCompose\jeux-docker-compose.yml up
+```
+
 ### JeuxDBContext
 
 **Сборка модуля**
