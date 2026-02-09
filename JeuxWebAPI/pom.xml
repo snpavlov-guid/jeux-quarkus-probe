@@ -67,7 +67,7 @@
 
         <dependency>
             <groupId>com.jeuxdbcontext</groupId>
-            <artifactId>JeuxDBContext</artifactId>
+            <artifactId>jeuxdbcontext</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

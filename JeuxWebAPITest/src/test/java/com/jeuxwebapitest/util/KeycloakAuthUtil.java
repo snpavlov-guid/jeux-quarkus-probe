@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.opentest4j.TestAbortedException;
 
 public final class KeycloakAuthUtil {
     private static final String TOKEN_URL_KEY = "keycloak.auth.token-url";
@@ -42,12 +43,22 @@ public final class KeycloakAuthUtil {
             HttpClient client = HttpClient.newHttpClient();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Keycloak token request failed: HTTP " + response.statusCode());
+                throw new TestAbortedException(
+                    "Keycloak is unavailable for tests: HTTP "
+                        + response.statusCode()
+                        + " from "
+                        + tokenUrl
+                );
             }
             return extractAccessToken(response.body());
-        } catch (IOException | InterruptedException ex) {
+        } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Keycloak token request failed", ex);
+            throw new IllegalStateException("Keycloak token request was interrupted", ex);
+        } catch (IOException ex) {
+            throw new TestAbortedException(
+                "Keycloak is unavailable for tests at " + tokenUrl + ", skipping secured endpoint tests",
+                ex
+            );
         }
     }
 

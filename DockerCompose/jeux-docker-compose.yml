@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  jeuxwebapi:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    image: jeuxwebapi:local
+    ports:
+      - "19081:19081"
+    environment:
+      QUARKUS_PROFILE: prod
+    extra_hosts:
+      - "keycloak-dev:host-gateway"
+
+
