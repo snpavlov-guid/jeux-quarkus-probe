@@ -23,6 +23,8 @@ COPY --from=build /workspace/JeuxWebAPI/target/quarkus-app/ ./
 
 ENV QUARKUS_HTTP_PORT=19081
 
+RUN chmod +x ./quarkus-run.jar
+
 EXPOSE 19081
 
 ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]

@@ -9,9 +9,9 @@ services:
     ports:
       - "19081:19081"
     environment:
-      QUARKUS_PROFILE: prod
+      QUARKUS_PROFILE: dev
       QUARKUS_DATASOURCE_DB_KIND: postgresql
-      QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://172.18.0.2:5432/LeaguesDemo
+      QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://host.docker.internal:5432/LeaguesDemo
       QUARKUS_DATASOURCE_USERNAME: postgres
       QUARKUS_DATASOURCE_PASSWORD: Postik123
       QUARKUS_HTTP_PORT: 19081
@@ -22,7 +22,7 @@ services:
       RFLEAGUEID: "1"
       QUARKUS_INDEX_DEPENDENCY_JEUXDBCONTEXT_GROUP_ID: com.jeuxdbcontext
       QUARKUS_INDEX_DEPENDENCY_JEUXDBCONTEXT_ARTIFACT_ID: jeuxdbcontext
-      QUARKUS_OIDC_AUTH_SERVER_URL: http://172.18.0.2:8082/realms/probe-app
+      QUARKUS_OIDC_AUTH_SERVER_URL: http://host.docker.internal:8082/realms/probe-app
       QUARKUS_OIDC_APPLICATION_TYPE: service
       QUARKUS_OIDC_CLIENT_ID: probe-app-client
 
