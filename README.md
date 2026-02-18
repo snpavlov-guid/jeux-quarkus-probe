@@ -12,7 +12,7 @@
 Ниже приведены команды для PowerShell, выполнять из корня репозитория:
 
 ```
-cd C:\Projects\X-Probes\JsrvProbe\JeuxSonde
+cd C:\Projects\<your-path>\JeuxSonde
 ```
 
 **Сборка Dockerfile и запуск контейнера (без Compose)**
@@ -61,6 +61,21 @@ mvn -pl JeuxDBContextTest clean test
 Файл настроек WebAPI: `JeuxWebAPI\config\application.properties`  
 Файл настроек тестов: `JeuxWebAPITest\config\application.properties`
 
+### Профили конфигурации Quarkus
+
+В `JeuxWebAPI\config\application.properties` используются два профиля:
+
+- `%dev` — локальная разработка:
+  - `quarkus.http.port=30881`
+  - PostgreSQL на `localhost:5432`
+  - Keycloak на `http://localhost:8082/realms/probe-app`
+- `%prod` — запуск в Docker:
+  - `quarkus.http.port=19081`
+  - PostgreSQL на `host.docker.internal:5432`
+  - Keycloak на `http://keycloak-dev:8082/realms/probe-app`
+
+`docker compose` запускает сервис с `QUARKUS_PROFILE=prod`.
+
 **Сборка**
 ```
 mvn -pl JeuxWebAPI clean package
@@ -77,7 +92,8 @@ mvn -pl JeuxWebAPI clean package
 ### Настройка Keycloak
 
 Настройки OIDC находятся в `JeuxWebAPI\config\application.properties`:
-- `quarkus.oidc.auth-server-url=http://keycloak-dev:8082/realms/probe-app`
+- `%dev.quarkus.oidc.auth-server-url=http://localhost:8082/realms/probe-app`
+- `%prod.quarkus.oidc.auth-server-url=http://keycloak-dev:8082/realms/probe-app`
 - `quarkus.oidc.application-type=service`
 - `quarkus.oidc.client-id=probe-app-client`
 
@@ -89,7 +105,7 @@ mvn -pl JeuxWebAPI clean package
 Тесты используют внешний Keycloak и получают токен через password grant.
 Параметры запроса токена задаются в `JeuxWebAPITest\config\application.properties`:
 
-- `keycloak.auth.token-url=http://localhost:8082/realms/probe-app/protocol/openid-connect/token`
+- `keycloak.auth.token-url=http://keycloak-dev:8082/realms/probe-app/protocol/openid-connect/token`
 - `keycloak.auth.client-id=probe-app-client`
 - `keycloak.auth.grant-type=password`
 - `keycloak.auth.username=testuser01`
