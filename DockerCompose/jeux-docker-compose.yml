@@ -22,7 +22,10 @@ services:
       RFLEAGUEID: "1"
       QUARKUS_INDEX_DEPENDENCY_JEUXDBCONTEXT_GROUP_ID: com.jeuxdbcontext
       QUARKUS_INDEX_DEPENDENCY_JEUXDBCONTEXT_ARTIFACT_ID: jeuxdbcontext
-      QUARKUS_OIDC_AUTH_SERVER_URL: http://host.docker.internal:8082/realms/probe-app
+      QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak-dev:8082/realms/probe-app
       QUARKUS_OIDC_APPLICATION_TYPE: service
       QUARKUS_OIDC_CLIENT_ID: probe-app-client
+    extra_hosts:
+      - "keycloak-dev:host-gateway"
+      
 
