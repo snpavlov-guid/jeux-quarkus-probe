@@ -27,5 +27,5 @@ services:
       QUARKUS_OIDC_CLIENT_ID: probe-app-client
     extra_hosts:
       - "keycloak-dev:host-gateway"
-      
+
 

@@ -15,10 +15,15 @@
 cd C:\Projects\X-Probes\JsrvProbe\JeuxSonde
 ```
 
+**Сборка Dockerfile и запуск контейнера (без Compose)**
+```
+docker build -f Docker\Dockerfile -t jeuxwebapi:local .
+docker run --rm -p 19081:19081 jeuxwebapi:local
+```
+
 **Сборка и запуск через Docker Compose**
 ```
-docker compose -f DockerCompose\jeux-docker-compose.yml build --no-cache 
-docker compose -f DockerCompose\jeux-docker-compose.yml up
+docker compose -f DockerCompose\jeux-docker-compose.yml up --build
 ```
 
 ### JeuxDBContext
@@ -72,8 +77,12 @@ mvn -pl JeuxWebAPI clean package
 ### Настройка Keycloak
 
 Настройки OIDC находятся в `JeuxWebAPI\config\application.properties`:
-- `quarkus.oidc.auth-server-url=http://localhost:8082/realms/probe-app`
+- `quarkus.oidc.auth-server-url=http://keycloak-dev:8082/realms/probe-app`
 - `quarkus.oidc.application-type=service`
+- `quarkus.oidc.client-id=probe-app-client`
+
+Для запуска в Docker Compose хост `keycloak-dev` пробрасывается на хост-машину через:
+- `extra_hosts: "keycloak-dev:host-gateway"`
 
 ### Тесты WebAPI
 
@@ -107,8 +116,14 @@ http://localhost:30881/api/q/v1
 ```
 
 Документация OpenAPI и Swagger UI:
-- OpenAPI JSON: `http://localhost:30881/openapi`
-- Swagger UI: `http://localhost:30881/swaggerui`
+- OpenAPI JSON: `http://localhost:30881/api/q/v1/openapi`
+- Swagger UI: `http://localhost:30881/api/q/v1/swagger`
+
+### URL при запуске в Docker Compose
+
+- API: `http://localhost:19081/api/q/v1`
+- OpenAPI JSON: `http://localhost:19081/api/q/v1/openapi`
+- Swagger UI: `http://localhost:19081/api/q/v1/swagger`
 
 **Остановка**
 
