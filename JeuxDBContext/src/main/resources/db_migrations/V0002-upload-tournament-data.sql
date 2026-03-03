@@ -2,6 +2,174 @@
 -- PostgreSQL database dump
 --
 
+-- Data load order adjusted for FK dependencies: League, Team, Tournament, Stage, Match.
+-- Keep parent entities before Match to satisfy immediate foreign key checks.
+
+--
+-- Data for Name: League; Type: TABLE DATA; Schema: football; Owner: postgres
+--
+
+COPY football."League" (id, name) FROM stdin;
+1	Чемпионат России
+\.
+
+--
+-- Data for Name: Team; Type: TABLE DATA; Schema: football; Owner: postgres
+--
+
+COPY football."Team" (short_name, id, city, name, logo_url) FROM stdin;
+	41	\N	Спартак Москва	https://s.scr365.net/teams/2024/6/28/BnwleZbw3_32_151.png
+	42	\N	Шинник	https://s.scr365.net/teams/2024/1/22/fAi1tIM_32_189.png
+	43	\N	Ротор	https://s.scr365.net/s1/logo/sToWP_32_5476.png
+	44	\N	Океан	https://s.scr365.net/s1/logo/66SWLv9C5_32_8265.png
+	45	\N	Текстильщик Камышин	https://s.scr365.net/s1/logo/5ml3i_32_8269.png
+	46	\N	Пресня Мск	https://s.scr365.net/s1/logo/S8UQAHWv_32_8264.png
+	47	\N	Факел	https://s.scr365.net/teams/2024/6/28/6p12dmV_32_7402.png
+	48	\N	Урал	https://s.scr365.net/teams/2023/7/22/W0MYW3_32_167.png
+	49	\N	Локомотив Москва	https://s.scr365.net/teams/2024/6/28/cz0cExvc_32_85.png
+	50	\N	Динамо Ств	https://s.scr365.net/teams/2024/8/20/8qG6c_32_8266.png
+	51	\N	Алания Владикавказ	https://s.scr365.net/teams/2024/1/22/q5tQ3_32_80.png
+	52	\N	Ростов	https://s.scr365.net/teams/2024/6/28/58H8yA_32_133.png
+	53	\N	Локомотив-НН	https://s.scr365.net/s1/logo/3ebFr3Q_32_8268.png
+	54	\N	Крылья Советов	https://s.scr365.net/teams/2024/6/28/HMbgLRDgL_32_69.png
+	55	\N	ЦСКА Москва	https://s.scr365.net/teams/2024/6/28/4Y9W4_32_182.png
+	56	\N	Динамо Москва	https://s.scr365.net/teams/2024/6/28/Qhm0X9Oq_32_277.png
+	57	\N	Торпедо Москва	https://s.scr365.net/teams/2023/7/17/WsjEtCD_32_578.png
+	58	\N	Кубань	https://s.scr365.net/teams/2022/3/14/pcCuVWDAQ_32_70.png
+	59	\N	Зенит	https://s.scr365.net/teams/2024/6/28/iBaBlx2_32_52.png
+	60	\N	Тюмень	https://s.scr365.net/teams/2024/1/22/MCnmY_32_6901.png
+	61	\N	Жемчужина-Сочи	https://s.scr365.net/s1/logo/scsGqT_32_8267.png
+	62	\N	КАМАЗ	https://s.scr365.net/teams/2023/7/31/LwKVyi_32_57.png
+	63	\N	Луч	https://s.scr365.net/s1/logo/SnpiAAFh_32_7333.png
+	64	\N	Лада-Тольятти	https://s.scr365.net/teams/2024/3/30/dYKuAaQ_32_7308.png
+	65	\N	Черноморец Новороссийск	https://s.scr365.net/teams/2024/1/22/YM6MHaM_32_7407.png
+	66	\N	Балтика	https://s.scr365.net/teams/2023/7/22/NqWsoJ40_32_10.png
+	67	\N	Уралан	https://s.scr365.net/s1/logo/NsJaOdBt1_32_8188.png
+	68	\N	Леон Сатурн	https://s.scr365.net/teams/2023/8/22/0q3uxk7B_32_8073.png
+	69	\N	Анжи	https://s.scr365.net/s1/logo/3vFjTMHY_32_215.png
+	70	\N	Сокол Саратов	https://s.scr365.net/teams/2024/1/22/rPP03_32_7394.png
+	71	\N	Москва	https://s.scr365.net/s1/logo/KF32bBVX2_32_8187.png
+	72	\N	Рубин	https://s.scr365.net/teams/2024/6/28/s8Ddw8Alf_32_134.png
+	73	\N	Амкар	https://s.scr365.net/s1/logo/YfzRnNZu3_32_219.png
+	74	\N	Томь	https://s.scr365.net/s1/logo/EyhxM9wf_32_162.png
+	75	\N	Ахмат	https://s.scr365.net/teams/2024/6/28/hOl3XwUnK_32_161.png
+	76	\N	Спартак-Нальчик	https://s.scr365.net/s1/logo/H9ov1_32_152.png
+	77	\N	Химки	https://s.scr365.net/teams/2024/6/28/rlXrVO_32_252.png
+	78	\N	Сибирь Новосибирск	https://s.scr365.net/teams/2024/8/12/Q6vVL_32_5480.png
+	79	\N	Краснодар	https://s.scr365.net/teams/2024/6/28/uxVLL5vp_32_315.png
+	80	\N	Волга Нижний Новгород	https://s.scr365.net/s1/logo/ccUIM78_32_278.png
+	81	\N	СКА-Хабаровск	https://s.scr365.net/teams/2024/1/22/5LvfsL5_32_148.png
+	82	\N	Мордовия	https://s.scr365.net/s1/logo/HjZ1jXHZ_32_102.png
+	83	\N	Уфа	https://s.scr365.net/teams/2021/9/13/D8Tl9_32_6861.png
+	84	\N	Арсенал Тула	https://s.scr365.net/teams/2024/1/22/svURG2M_32_7396.png
+	85	\N	Тосно	https://s.scr365.net/s1/logo/cY4mR_32_8006.png
+	86	\N	Волгарь	https://s.scr365.net/s1/logo/gJsXkx5_32_6862.png
+	87	\N	Оренбург	https://s.scr365.net/teams/2025/7/11/fRbE6_32_6900.png
+	88	\N	Енисей	https://s.scr365.net/teams/2025/7/13/GY6yv1Z_32_97.png
+	89	\N	Тамбов	https://s.scr365.net/teams/2025/4/7/HXg0PPts_32_8008.png
+	90	\N	Пари НН	https://s.scr365.net/teams/2024/6/28/oMl2eot4A_32_9378.png
+	91	\N	ПФК Сочи	https://s.scr365.net/teams/2022/9/4/oCkas_32_8059.png
+	92	\N	Родина	https://s.scr365.net/s1/logo/VkIytC_32_15624.png
+	93	\N	Акрон	https://s.scr365.net/teams/2025/7/13/Vgx4ewcnA_15567.svg
+	94	\N	Динамо Махачкала	https://s.scr365.net/teams/2024/6/28/P6bbwg7_32_10577.png
+\.
+
+--
+-- Data for Name: Tournament; Type: TABLE DATA; Schema: football; Owner: postgres
+--
+
+COPY football."Tournament" (fn_year, st_year, id, league_id, name) FROM stdin;
+\N	1992	12	1	Чемпионат России
+\N	1993	13	1	Чемпионат России
+\N	1994	14	1	Чемпионат России
+\N	1995	15	1	Чемпионат России
+\N	1996	16	1	Чемпионат России
+\N	1997	17	1	Чемпионат России
+\N	1998	18	1	Чемпионат России
+\N	1999	19	1	Чемпионат России
+\N	2000	20	1	Чемпионат России
+\N	2001	21	1	Чемпионат России
+\N	2002	22	1	Чемпионат России
+\N	2003	23	1	Чемпионат России
+\N	2004	24	1	Чемпионат России
+\N	2005	25	1	Чемпионат России
+\N	2006	26	1	Чемпионат России
+\N	2007	27	1	Чемпионат России
+\N	2008	28	1	Чемпионат России
+\N	2009	29	1	Чемпионат России
+\N	2010	30	1	Чемпионат России
+2012	2011	31	1	Чемпионат России
+2013	2012	32	1	Чемпионат России
+2014	2013	33	1	Чемпионат России
+2015	2014	34	1	Чемпионат России
+2016	2015	35	1	Чемпионат России
+2017	2016	36	1	Чемпионат России
+2018	2017	37	1	Чемпионат России
+2019	2018	38	1	Чемпионат России
+2020	2019	39	1	Чемпионат России
+2021	2020	40	1	Чемпионат России
+2022	2021	41	1	Чемпионат России
+2023	2022	42	1	Чемпионат России
+2024	2023	43	1	Чемпионат России
+2025	2024	44	1	Чемпионат России
+\.
+
+--
+-- Data for Name: Stage; Type: TABLE DATA; Schema: football; Owner: postgres
+--
+
+COPY football."Stage" ("order", id, league_id, tournament_id, name) FROM stdin;
+0	22	1	12	Регулярный сезон
+0	23	1	12	Группа на выбывание
+0	24	1	12	Чемпионская группа
+0	25	1	13	
+0	26	1	14	
+0	27	1	15	
+0	28	1	16	Золотой матч
+0	29	1	16	Регулярный сезон
+0	30	1	17	
+0	31	1	18	
+0	32	1	19	
+0	33	1	20	
+0	34	1	21	
+0	35	1	22	Золотой матч
+0	36	1	22	Регулярный сезон
+0	37	1	23	
+0	38	1	24	
+0	39	1	25	
+0	40	1	26	
+0	41	1	27	
+0	42	1	28	
+0	43	1	29	
+0	44	1	30	
+0	45	1	31	Второй этап
+0	46	1	31	Регулярный сезон
+0	47	1	32	Регулярный сезон
+0	48	1	32	Понижение/повышение - финал
+0	49	1	33	Регулярный сезон
+0	50	1	33	Понижение/повышение - финал
+0	51	1	34	Регулярный сезон
+0	52	1	34	Понижение/повышение - финал
+0	53	1	35	Регулярный сезон
+0	54	1	35	Понижение/повышение - финал
+0	55	1	36	Регулярный сезон
+0	56	1	36	Понижение/повышение - финал
+0	57	1	37	Регулярный сезон
+0	58	1	37	Понижение/повышение - финал
+0	59	1	38	Регулярный сезон
+0	60	1	38	Понижение/повышение - финал
+0	61	1	39	
+0	62	1	40	
+0	63	1	41	Регулярный сезон
+0	64	1	41	Понижение/повышение - финал
+0	65	1	42	Регулярный сезон
+0	66	1	42	Понижение/повышение - финал
+0	67	1	43	Регулярный сезон
+0	68	1	43	Понижение/повышение - финал
+0	69	1	44	Регулярный сезон
+0	70	1	44	Понижение/повышение - финал
+\.
+
 
 --
 -- TOC entry 3373 (class 0 OID 1260462)
@@ -8333,169 +8501,7 @@ COPY football."Match" (g_score, h_score, tour, date, g_team_id, h_team_id, id, l
 \.
 
 
---
--- TOC entry 3375 (class 0 OID 1260469)
--- Dependencies: 215
--- Data for Name: Stage; Type: TABLE DATA; Schema: football; Owner: postgres
---
-
-COPY football."Stage" ("order", id, league_id, tournament_id, name) FROM stdin;
-0	22	1	12	Регулярный сезон
-0	23	1	12	Группа на выбывание
-0	24	1	12	Чемпионская группа
-0	25	1	13	
-0	26	1	14	
-0	27	1	15	
-0	28	1	16	Золотой матч
-0	29	1	16	Регулярный сезон
-0	30	1	17	
-0	31	1	18	
-0	32	1	19	
-0	33	1	20	
-0	34	1	21	
-0	35	1	22	Золотой матч
-0	36	1	22	Регулярный сезон
-0	37	1	23	
-0	38	1	24	
-0	39	1	25	
-0	40	1	26	
-0	41	1	27	
-0	42	1	28	
-0	43	1	29	
-0	44	1	30	
-0	45	1	31	Второй этап
-0	46	1	31	Регулярный сезон
-0	47	1	32	Регулярный сезон
-0	48	1	32	Понижение/повышение - финал
-0	49	1	33	Регулярный сезон
-0	50	1	33	Понижение/повышение - финал
-0	51	1	34	Регулярный сезон
-0	52	1	34	Понижение/повышение - финал
-0	53	1	35	Регулярный сезон
-0	54	1	35	Понижение/повышение - финал
-0	55	1	36	Регулярный сезон
-0	56	1	36	Понижение/повышение - финал
-0	57	1	37	Регулярный сезон
-0	58	1	37	Понижение/повышение - финал
-0	59	1	38	Регулярный сезон
-0	60	1	38	Понижение/повышение - финал
-0	61	1	39	
-0	62	1	40	
-0	63	1	41	Регулярный сезон
-0	64	1	41	Понижение/повышение - финал
-0	65	1	42	Регулярный сезон
-0	66	1	42	Понижение/повышение - финал
-0	67	1	43	Регулярный сезон
-0	68	1	43	Понижение/повышение - финал
-0	69	1	44	Регулярный сезон
-0	70	1	44	Понижение/повышение - финал
-\.
-
-
---
--- TOC entry 3377 (class 0 OID 1260476)
--- Dependencies: 217
--- Data for Name: Team; Type: TABLE DATA; Schema: football; Owner: postgres
---
-
-COPY football."Team" (short_name, id, city, name, logo_url) FROM stdin;
-	41	\N	Спартак Москва	https://s.scr365.net/teams/2024/6/28/BnwleZbw3_32_151.png
-	42	\N	Шинник	https://s.scr365.net/teams/2024/1/22/fAi1tIM_32_189.png
-	43	\N	Ротор	https://s.scr365.net/s1/logo/sToWP_32_5476.png
-	44	\N	Океан	https://s.scr365.net/s1/logo/66SWLv9C5_32_8265.png
-	45	\N	Текстильщик Камышин	https://s.scr365.net/s1/logo/5ml3i_32_8269.png
-	46	\N	Пресня Мск	https://s.scr365.net/s1/logo/S8UQAHWv_32_8264.png
-	47	\N	Факел	https://s.scr365.net/teams/2024/6/28/6p12dmV_32_7402.png
-	48	\N	Урал	https://s.scr365.net/teams/2023/7/22/W0MYW3_32_167.png
-	49	\N	Локомотив Москва	https://s.scr365.net/teams/2024/6/28/cz0cExvc_32_85.png
-	50	\N	Динамо Ств	https://s.scr365.net/teams/2024/8/20/8qG6c_32_8266.png
-	51	\N	Алания Владикавказ	https://s.scr365.net/teams/2024/1/22/q5tQ3_32_80.png
-	52	\N	Ростов	https://s.scr365.net/teams/2024/6/28/58H8yA_32_133.png
-	53	\N	Локомотив-НН	https://s.scr365.net/s1/logo/3ebFr3Q_32_8268.png
-	54	\N	Крылья Советов	https://s.scr365.net/teams/2024/6/28/HMbgLRDgL_32_69.png
-	55	\N	ЦСКА Москва	https://s.scr365.net/teams/2024/6/28/4Y9W4_32_182.png
-	56	\N	Динамо Москва	https://s.scr365.net/teams/2024/6/28/Qhm0X9Oq_32_277.png
-	57	\N	Торпедо Москва	https://s.scr365.net/teams/2023/7/17/WsjEtCD_32_578.png
-	58	\N	Кубань	https://s.scr365.net/teams/2022/3/14/pcCuVWDAQ_32_70.png
-	59	\N	Зенит	https://s.scr365.net/teams/2024/6/28/iBaBlx2_32_52.png
-	60	\N	Тюмень	https://s.scr365.net/teams/2024/1/22/MCnmY_32_6901.png
-	61	\N	Жемчужина-Сочи	https://s.scr365.net/s1/logo/scsGqT_32_8267.png
-	62	\N	КАМАЗ	https://s.scr365.net/teams/2023/7/31/LwKVyi_32_57.png
-	63	\N	Луч	https://s.scr365.net/s1/logo/SnpiAAFh_32_7333.png
-	64	\N	Лада-Тольятти	https://s.scr365.net/teams/2024/3/30/dYKuAaQ_32_7308.png
-	65	\N	Черноморец Новороссийск	https://s.scr365.net/teams/2024/1/22/YM6MHaM_32_7407.png
-	66	\N	Балтика	https://s.scr365.net/teams/2023/7/22/NqWsoJ40_32_10.png
-	67	\N	Уралан	https://s.scr365.net/s1/logo/NsJaOdBt1_32_8188.png
-	68	\N	Леон Сатурн	https://s.scr365.net/teams/2023/8/22/0q3uxk7B_32_8073.png
-	69	\N	Анжи	https://s.scr365.net/s1/logo/3vFjTMHY_32_215.png
-	70	\N	Сокол Саратов	https://s.scr365.net/teams/2024/1/22/rPP03_32_7394.png
-	71	\N	Москва	https://s.scr365.net/s1/logo/KF32bBVX2_32_8187.png
-	72	\N	Рубин	https://s.scr365.net/teams/2024/6/28/s8Ddw8Alf_32_134.png
-	73	\N	Амкар	https://s.scr365.net/s1/logo/YfzRnNZu3_32_219.png
-	74	\N	Томь	https://s.scr365.net/s1/logo/EyhxM9wf_32_162.png
-	75	\N	Ахмат	https://s.scr365.net/teams/2024/6/28/hOl3XwUnK_32_161.png
-	76	\N	Спартак-Нальчик	https://s.scr365.net/s1/logo/H9ov1_32_152.png
-	77	\N	Химки	https://s.scr365.net/teams/2024/6/28/rlXrVO_32_252.png
-	78	\N	Сибирь Новосибирск	https://s.scr365.net/teams/2024/8/12/Q6vVL_32_5480.png
-	79	\N	Краснодар	https://s.scr365.net/teams/2024/6/28/uxVLL5vp_32_315.png
-	80	\N	Волга Нижний Новгород	https://s.scr365.net/s1/logo/ccUIM78_32_278.png
-	81	\N	СКА-Хабаровск	https://s.scr365.net/teams/2024/1/22/5LvfsL5_32_148.png
-	82	\N	Мордовия	https://s.scr365.net/s1/logo/HjZ1jXHZ_32_102.png
-	83	\N	Уфа	https://s.scr365.net/teams/2021/9/13/D8Tl9_32_6861.png
-	84	\N	Арсенал Тула	https://s.scr365.net/teams/2024/1/22/svURG2M_32_7396.png
-	85	\N	Тосно	https://s.scr365.net/s1/logo/cY4mR_32_8006.png
-	86	\N	Волгарь	https://s.scr365.net/s1/logo/gJsXkx5_32_6862.png
-	87	\N	Оренбург	https://s.scr365.net/teams/2025/7/11/fRbE6_32_6900.png
-	88	\N	Енисей	https://s.scr365.net/teams/2025/7/13/GY6yv1Z_32_97.png
-	89	\N	Тамбов	https://s.scr365.net/teams/2025/4/7/HXg0PPts_32_8008.png
-	90	\N	Пари НН	https://s.scr365.net/teams/2024/6/28/oMl2eot4A_32_9378.png
-	91	\N	ПФК Сочи	https://s.scr365.net/teams/2022/9/4/oCkas_32_8059.png
-	92	\N	Родина	https://s.scr365.net/s1/logo/VkIytC_32_15624.png
-	93	\N	Акрон	https://s.scr365.net/teams/2025/7/13/Vgx4ewcnA_15567.svg
-	94	\N	Динамо Махачкала	https://s.scr365.net/teams/2024/6/28/P6bbwg7_32_10577.png
-\.
-
-
---
--- TOC entry 3379 (class 0 OID 1260485)
--- Dependencies: 219
--- Data for Name: Tournament; Type: TABLE DATA; Schema: football; Owner: postgres
---
-
-COPY football."Tournament" (fn_year, st_year, id, league_id, name) FROM stdin;
-\N	1992	12	1	Чемпионат России
-\N	1993	13	1	Чемпионат России
-\N	1994	14	1	Чемпионат России
-\N	1995	15	1	Чемпионат России
-\N	1996	16	1	Чемпионат России
-\N	1997	17	1	Чемпионат России
-\N	1998	18	1	Чемпионат России
-\N	1999	19	1	Чемпионат России
-\N	2000	20	1	Чемпионат России
-\N	2001	21	1	Чемпионат России
-\N	2002	22	1	Чемпионат России
-\N	2003	23	1	Чемпионат России
-\N	2004	24	1	Чемпионат России
-\N	2005	25	1	Чемпионат России
-\N	2006	26	1	Чемпионат России
-\N	2007	27	1	Чемпионат России
-\N	2008	28	1	Чемпионат России
-\N	2009	29	1	Чемпионат России
-\N	2010	30	1	Чемпионат России
-2012	2011	31	1	Чемпионат России
-2013	2012	32	1	Чемпионат России
-2014	2013	33	1	Чемпионат России
-2015	2014	34	1	Чемпионат России
-2016	2015	35	1	Чемпионат России
-2017	2016	36	1	Чемпионат России
-2018	2017	37	1	Чемпионат России
-2019	2018	38	1	Чемпионат России
-2020	2019	39	1	Чемпионат России
-2021	2020	40	1	Чемпионат России
-2022	2021	41	1	Чемпионат России
-2023	2022	42	1	Чемпионат России
-2024	2023	43	1	Чемпионат России
-2025	2024	44	1	Чемпионат России
-\.
+-- Data blocks for Stage/Team/Tournament were moved to the top
+-- to satisfy FK dependencies before loading Match rows.
 
 

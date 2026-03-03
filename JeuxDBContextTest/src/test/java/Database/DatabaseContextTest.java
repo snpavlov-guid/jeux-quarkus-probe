@@ -6,26 +6,67 @@ import Entities.Stage;
 import Entities.Team;
 import Entities.Tournament;
 import Services.MatchUploadService;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.hibernate.reactive.provider.ReactiveServiceRegistryBuilder;
 import org.hibernate.service.ServiceRegistry;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DatabaseContextTest {
     @Test
+    @Order(1)
+    void ApplyMigrationsTest() {
+        Properties properties = loadDatabaseProperties();
+        String dbUrl = properties.getProperty("db.url");
+        String dbUser = properties.getProperty("db.user");
+        String dbPassword = properties.getProperty("db.password");
+        validateConnectionParams(dbUrl, dbUser, dbPassword);
+        Assertions.assertTrue(dbUrl.contains("/LeaguesTest"), "ApplyMigrationsTest must run on LeaguesTest database");
+        String flywayLocation = resolveFlywayLocation();
+        dropFootballSchemaIfExists(dbUrl, dbUser, dbPassword);
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(dbUrl, dbUser, dbPassword)
+                .locations(flywayLocation)
+                .sqlMigrationSeparator("-")
+                .cleanDisabled(false)
+                .load();
+
+        flyway.clean();
+        flyway.migrate();
+
+        var info = flyway.info();
+        MigrationInfo[] applied = info.applied();
+        Assertions.assertNotNull(applied, "Applied migrations list must not be null");
+        Assertions.assertEquals(2, applied.length, "All Flyway migrations must be applied");
+        Assertions.assertNotNull(info.current(), "Current migration version must exist");
+        Assertions.assertEquals("0002", info.current().getVersion().toString(), "Current migration version must be 0002");
+    }
+
+    @Test
+    @Order(2)
     void CreateDatabaseScheme() {
         Properties properties = loadDatabaseProperties();
 
@@ -40,6 +81,7 @@ public class DatabaseContextTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"РПЛ"})
+    @Order(3)
     void UpsertLeagueTest(String leagueName) {
         Properties properties = loadDatabaseProperties();
 
@@ -62,6 +104,7 @@ public class DatabaseContextTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"Champ_1992.json", "Champ_2013-2014.json"})
+    @Order(4)
     void UpsertTournamentTest(String turnirFile) {
         Properties properties = loadDatabaseProperties();
 
@@ -92,6 +135,7 @@ public class DatabaseContextTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"Champ_1992.json"})
+    @Order(5)
     void UploadTournamentTest(String turnirDataFile) {
         Properties properties = loadDatabaseProperties();
 
@@ -115,6 +159,7 @@ public class DatabaseContextTest {
     }
 
     @Test
+    @Order(6)
     void UploadAllTournamentData() {
         Properties properties = loadDatabaseProperties();
 
@@ -200,6 +245,26 @@ public class DatabaseContextTest {
         tournament.setStYear(stYear);
         tournament.setFnYear(fnYear);
         return tournament;
+    }
+
+    private String resolveFlywayLocation() {
+        Path primaryPath = Paths.get("..", "JeuxDBContext", "src", "main", "resources", "db_migrations").toAbsolutePath().normalize();
+        if (!Files.exists(primaryPath)) {
+            primaryPath = Paths.get("JeuxDBContext", "src", "main", "resources", "db_migrations").toAbsolutePath().normalize();
+        }
+        if (!Files.exists(primaryPath)) {
+            throw new IllegalStateException("Flyway migrations folder not found: JeuxDBContext/src/main/resources/db_migrations");
+        }
+        return "filesystem:" + primaryPath;
+    }
+
+    private void dropFootballSchemaIfExists(String dbUrl, String dbUser, String dbPassword) {
+        try (Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+             Statement statement = connection.createStatement()) {
+            statement.execute("DROP SCHEMA IF EXISTS football CASCADE");
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to drop football schema before Flyway migrate", e);
+        }
     }
 
     private Mutiny.SessionFactory buildSessionFactory(String dbUrl, String dbUser, String dbPassword, String hbm2ddlAuto) {
