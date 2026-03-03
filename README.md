@@ -158,11 +158,18 @@ taskkill /PID <pid> /F
 **Сборка/запуск тестов**
 
 Перед запуском убедитесь, что:
-- PostgreSQL доступен по настройкам в `JeuxWebAPITest\config\application.properties`
 - задан параметр `RFLeagueId` в `JeuxWebAPITest\config\application.properties`
+- Keycloak доступен по URL из `JeuxWebAPITest\config\application.properties` (для secured endpoint тестов)
 
 Команда запуска (PowerShell):
 ```
 mvn -pl JeuxWebAPITest test
 ```
+
+#### Тестовая БД H2 + миграции
+
+- Тесты `JeuxWebAPITest` используют **in-memory H2** (без локального PostgreSQL).
+- Перед стартом `@QuarkusTest` автоматически выполняются миграции Flyway.
+- Источник тестовых миграций: `JeuxWebAPITest\src\test\resources\db_migrations\h2`.
+- Миграции синхронизированы по структуре с `JeuxDBContext\src\main\resources\db_migrations`, но адаптированы под H2.
 

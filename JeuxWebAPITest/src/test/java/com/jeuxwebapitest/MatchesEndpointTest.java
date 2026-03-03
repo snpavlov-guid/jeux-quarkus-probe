@@ -8,6 +8,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.jeuxwebapitest.util.KeycloakAuthUtil;
+import com.jeuxwebapitest.util.H2FlywayTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@QuarkusTestResource(H2FlywayTestResource.class)
 public class MatchesEndpointTest {
     private static String authToken;
 
