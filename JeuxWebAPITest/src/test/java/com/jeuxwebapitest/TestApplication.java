@@ -3,6 +3,7 @@ package com.jeuxwebapitest;
 import com.jeuxwebapi.resources.LeagueResource;
 import com.jeuxwebapi.resources.MatchResource;
 import com.jeuxwebapi.resources.PingResource;
+import com.jeuxwebapi.resources.StandingResource;
 import com.jeuxwebapi.resources.TeamResource;
 import com.jeuxwebapi.resources.TournamentResource;
 import jakarta.ws.rs.ApplicationPath;
@@ -17,6 +18,7 @@ public class TestApplication extends Application {
                 LeagueResource.class,
                 MatchResource.class,
                 PingResource.class,
+                StandingResource.class,
                 TeamResource.class,
                 TournamentResource.class
         );
