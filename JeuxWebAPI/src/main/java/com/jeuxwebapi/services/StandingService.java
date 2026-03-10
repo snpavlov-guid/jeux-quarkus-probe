@@ -70,7 +70,7 @@ public class StandingService {
         return new StandingDto(
                 toLong(row[0]),
                 toStringValue(row[1]),
-                toInt(row[2]),
+                toStringValue(row[2]),
                 toInt(row[3]),
                 toInt(row[4]),
                 toInt(row[5]),
@@ -93,7 +93,8 @@ public class StandingService {
                 toInt(row[22]),
                 toInt(row[23]),
                 toInt(row[24]),
-                toInt(row[25])
+                toInt(row[25]),
+                toInt(row[26])
         );
     }
 

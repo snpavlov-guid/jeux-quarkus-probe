@@ -1,7 +1,9 @@
 package com.jeuxwebapi.services;
 
 import Entities.Stage;
+import Entities.StageType;
 import Entities.Tournament;
+import com.jeuxwebapi.models.StageUpdateDto;
 import com.jeuxwebapi.models.StageDto;
 import com.jeuxwebapi.models.TournamentCreateDto;
 import com.jeuxwebapi.models.TournamentDto;
@@ -90,10 +92,12 @@ public class TournamentService {
             tournament.setLeagueId(createDto.getLeagueId());
             return session.persist(tournament)
                     .chain(session::flush)
-                    .replaceWith(() -> {
+                    .chain(() -> upsertStages(session, tournament, createDto.getStages()))
+                    .chain(() -> loadStagesByTournament(session, List.of(tournament)))
+                    .map(stagesByTournament -> {
                         ServiceDataResult<TournamentDto> result = new ServiceDataResult<>();
                         result.setResult(true);
-                        result.setData(toDto(tournament, Map.of()));
+                        result.setData(toDto(tournament, stagesByTournament));
                         return result;
                     });
         });
@@ -112,7 +116,7 @@ public class TournamentService {
                     tournament.setStYear(updateDto.getStYear());
                     tournament.setFnYear(updateDto.getFnYear());
                     tournament.setLeagueId(updateDto.getLeagueId());
-                    return session.flush()
+                    return upsertStages(session, tournament, updateDto.getStages())
                             .chain(() -> loadStagesByTournament(session, List.of(tournament)))
                             .map(stagesByTournament -> {
                                 result.setResult(true);
@@ -212,7 +216,73 @@ public class TournamentService {
                 stage.getName(),
                 stage.getOrder(),
                 stage.getLeagueId(),
-                stage.getTournamentId()
+                stage.getTournamentId(),
+                toApiStageType(stage.getStageType())
         );
+    }
+
+    private Uni<Void> upsertStages(Mutiny.Session session, Tournament tournament, List<StageUpdateDto> stageDtos) {
+        if (stageDtos == null || stageDtos.isEmpty()) {
+            return session.flush().replaceWithVoid();
+        }
+
+        List<Long> stageIds = stageDtos.stream()
+                .map(StageUpdateDto::getId)
+                .filter(id -> id > 0)
+                .toList();
+
+        return loadExistingStages(session, tournament.getId(), stageIds)
+                .chain(existingById -> {
+                    List<Stage> newStages = new ArrayList<>();
+                    for (StageUpdateDto stageDto : stageDtos) {
+                        Stage stage = existingById.get(stageDto.getId());
+                        if (stage == null) {
+                            stage = new Stage();
+                            newStages.add(stage);
+                        }
+
+                        stage.setName(stageDto.getName());
+                        stage.setOrder(stageDto.getOrder());
+                        stage.setLeagueId(stageDto.getLeagueId() == null ? tournament.getLeagueId() : stageDto.getLeagueId());
+                        stage.setTournamentId(tournament.getId());
+                        stage.setStageType(toEntityStageType(stageDto.getStageType()));
+                    }
+
+                    Uni<Void> persistChain = Uni.createFrom().voidItem();
+                    for (Stage stage : newStages) {
+                        persistChain = persistChain.chain(() -> session.persist(stage).replaceWithVoid());
+                    }
+                    return persistChain.chain(session::flush).replaceWithVoid();
+                });
+    }
+
+    private Uni<Map<Long, Stage>> loadExistingStages(Mutiny.Session session, long tournamentId, List<Long> stageIds) {
+        if (stageIds.isEmpty()) {
+            return Uni.createFrom().item(Map.of());
+        }
+
+        Mutiny.SelectionQuery<Stage> query = session.createQuery(
+                "from Stage s where s.TournamentId = :tournamentId and s.Id in :ids",
+                Stage.class
+        );
+        query.setParameter("tournamentId", tournamentId);
+        query.setParameter("ids", stageIds);
+        return query.getResultList()
+                .map(items -> items.stream()
+                        .collect(Collectors.toMap(Stage::getId, stage -> stage)));
+    }
+
+    private static StageType toEntityStageType(com.jeuxwebapi.models.StageType stageType) {
+        if (stageType == null) {
+            return StageType.REGULAR;
+        }
+        return StageType.valueOf(stageType.name());
+    }
+
+    private static com.jeuxwebapi.models.StageType toApiStageType(StageType stageType) {
+        if (stageType == null) {
+            return com.jeuxwebapi.models.StageType.REGULAR;
+        }
+        return com.jeuxwebapi.models.StageType.valueOf(stageType.name());
     }
 }

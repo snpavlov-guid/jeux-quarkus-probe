@@ -2,6 +2,8 @@ package Entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -48,6 +50,11 @@ public class Stage {
     @Column(name = "tournament_id", nullable = false)
     // Stage tournament id
     private Long TournamentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "stage_type", length = 16, nullable = false)
+    // Stage type
+    private StageType StageType = Entities.StageType.REGULAR;
 
     @ManyToOne
     @JoinColumn(
@@ -139,6 +146,14 @@ public class Stage {
     public void setTournament(Tournament tournament) {
         this.Tournament = tournament;
         this.TournamentId = tournament == null ? null : tournament.getId();
+    }
+
+    public StageType getStageType() {
+        return StageType;
+    }
+
+    public void setStageType(StageType stageType) {
+        this.StageType = stageType;
     }
 
     public List<Match> getMatches() {

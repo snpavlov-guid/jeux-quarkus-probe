@@ -6,8 +6,8 @@ public class StageUpdateDto extends StageCreateDto {
     public StageUpdateDto() {
     }
 
-    public StageUpdateDto(long id, String name, int order, Long leagueId, Long tournamentId) {
-        super(name, order, leagueId, tournamentId);
+    public StageUpdateDto(long id, String name, int order, Long leagueId, Long tournamentId, StageType stageType) {
+        super(name, order, leagueId, tournamentId, stageType);
         this.id = id;
     }
 

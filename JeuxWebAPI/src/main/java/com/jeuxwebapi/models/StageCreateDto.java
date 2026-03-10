@@ -5,15 +5,17 @@ public class StageCreateDto {
     private int order;
     private Long leagueId;
     private Long tournamentId;
+    private StageType stageType;
 
     public StageCreateDto() {
     }
 
-    public StageCreateDto(String name, int order, Long leagueId, Long tournamentId) {
+    public StageCreateDto(String name, int order, Long leagueId, Long tournamentId, StageType stageType) {
         this.name = name;
         this.order = order;
         this.leagueId = leagueId;
         this.tournamentId = tournamentId;
+        this.stageType = stageType;
     }
 
     public String getName() {
@@ -46,5 +48,13 @@ public class StageCreateDto {
 
     public void setTournamentId(Long tournamentId) {
         this.tournamentId = tournamentId;
+    }
+
+    public StageType getStageType() {
+        return stageType;
+    }
+
+    public void setStageType(StageType stageType) {
+        this.stageType = stageType;
     }
 }

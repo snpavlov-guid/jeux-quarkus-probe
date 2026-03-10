@@ -37,6 +37,7 @@ public class StandingsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("items", notNullValue())
+                .body("items[0].containsKey('teamLogo')", equalTo(true))
                 .body("total", equalTo(16))
                 .body("items.size()", equalTo(16));
     }

@@ -77,6 +77,7 @@ public final class H2SqlFunctions {
             resultSet.addRow(
                     stats.teamId,
                     stats.teamName,
+                    stats.teamLogo,
                     stats.getMatches(),
                     stats.getWins(),
                     stats.getDraw(),
@@ -111,6 +112,7 @@ public final class H2SqlFunctions {
         SimpleResultSet resultSet = new SimpleResultSet();
         resultSet.addColumn("teamid", Types.BIGINT, 20, 0);
         resultSet.addColumn("teamname", Types.VARCHAR, 128, 0);
+        resultSet.addColumn("teamlogo", Types.VARCHAR, 256, 0);
         resultSet.addColumn("matches", Types.INTEGER, 10, 0);
         resultSet.addColumn("wins", Types.INTEGER, 10, 0);
         resultSet.addColumn("draw", Types.INTEGER, 10, 0);
@@ -142,13 +144,14 @@ public final class H2SqlFunctions {
         if (teams.isEmpty()) {
             return;
         }
-        try (PreparedStatement statement = connection.prepareStatement("select id, name from football.\"Team\"")) {
+        try (PreparedStatement statement = connection.prepareStatement("select id, name, logo_url from football.\"Team\"")) {
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
                     long id = rows.getLong(1);
                     TeamStats stats = teams.get(id);
                     if (stats != null) {
                         stats.teamName = rows.getString(2);
+                        stats.teamLogo = rows.getString(3);
                     }
                 }
             }
@@ -158,6 +161,7 @@ public final class H2SqlFunctions {
     private static final class TeamStats {
         private final long teamId;
         private String teamName;
+        private String teamLogo;
         private int hMatches;
         private int hWins;
         private int hDraw;

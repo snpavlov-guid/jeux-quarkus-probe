@@ -6,8 +6,15 @@ public class TournamentUpdateDto extends TournamentCreateDto {
     public TournamentUpdateDto() {
     }
 
-    public TournamentUpdateDto(long id, String name, int stYear, Integer fnYear, Long leagueId) {
-        super(name, stYear, fnYear, leagueId);
+    public TournamentUpdateDto(
+            long id,
+            String name,
+            int stYear,
+            Integer fnYear,
+            Long leagueId,
+            java.util.List<StageUpdateDto> stages
+    ) {
+        super(name, stYear, fnYear, leagueId, stages);
         this.id = id;
     }
 

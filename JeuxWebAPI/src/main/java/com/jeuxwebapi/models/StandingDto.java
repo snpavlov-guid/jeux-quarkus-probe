@@ -3,6 +3,7 @@ package com.jeuxwebapi.models;
 public class StandingDto {
     private long teamId;
     private String teamName;
+    private String teamLogo;
     private int matches;
     private int wins;
     private int draw;
@@ -34,6 +35,7 @@ public class StandingDto {
     public StandingDto(
             long teamId,
             String teamName,
+            String teamLogo,
             int matches,
             int wins,
             int draw,
@@ -61,6 +63,7 @@ public class StandingDto {
     ) {
         this.teamId = teamId;
         this.teamName = teamName;
+        this.teamLogo = teamLogo;
         this.matches = matches;
         this.wins = wins;
         this.draw = draw;
@@ -101,6 +104,14 @@ public class StandingDto {
 
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+
+    public String getTeamLogo() {
+        return teamLogo;
+    }
+
+    public void setTeamLogo(String teamLogo) {
+        this.teamLogo = teamLogo;
     }
 
     public int getMatches() {

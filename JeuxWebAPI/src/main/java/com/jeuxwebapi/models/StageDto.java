@@ -6,16 +6,18 @@ public class StageDto {
     private int order;
     private Long leagueId;
     private Long tournamentId;
+    private StageType stageType;
 
     public StageDto() {
     }
 
-    public StageDto(long id, String name, int order, Long leagueId, Long tournamentId) {
+    public StageDto(long id, String name, int order, Long leagueId, Long tournamentId, StageType stageType) {
         this.id = id;
         this.name = name;
         this.order = order;
         this.leagueId = leagueId;
         this.tournamentId = tournamentId;
+        this.stageType = stageType;
     }
 
     public long getId() {
@@ -56,5 +58,13 @@ public class StageDto {
 
     public void setTournamentId(Long tournamentId) {
         this.tournamentId = tournamentId;
+    }
+
+    public StageType getStageType() {
+        return stageType;
+    }
+
+    public void setStageType(StageType stageType) {
+        this.stageType = stageType;
     }
 }

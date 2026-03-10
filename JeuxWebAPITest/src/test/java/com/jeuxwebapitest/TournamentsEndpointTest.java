@@ -105,7 +105,8 @@ public class TournamentsEndpointTest {
                     .then()
                     .statusCode(200)
                     .body("result", equalTo(true))
-                    .body("data.id", equalTo(id));
+                    .body("data.id", equalTo(id))
+                    .body("data.stages[0].stageType", notNullValue());
         }
 
         authorized()
@@ -138,7 +139,15 @@ public class TournamentsEndpointTest {
                         "name", "Test Tournament Create",
                         "stYear", 2024,
                         "fnYear", 2025,
-                        "leagueId", leagueId
+                        "leagueId", leagueId,
+                        "stages", List.of(
+                                Map.of(
+                                        "name", "Золотой матч",
+                                        "order", 1,
+                                        "leagueId", leagueId,
+                                        "stageType", "EXTRAPLAY"
+                                )
+                        )
                 ))
                 .when()
                 .post("/api/q/v1/tournaments/create")
@@ -146,8 +155,18 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", notNullValue())
+                .body("data.stages[0].stageType", equalTo("EXTRAPLAY"))
                 .extract()
                 .path("data.id");
+
+        Integer stageId = authorized()
+                .when()
+                .get("/api/q/v1/tournaments/" + id)
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.stages[0].id");
 
         authorized()
                 .contentType("application/json")
@@ -156,7 +175,16 @@ public class TournamentsEndpointTest {
                         "name", "Test Tournament Updated",
                         "stYear", 2024,
                         "fnYear", 2026,
-                        "leagueId", leagueId
+                        "leagueId", leagueId,
+                        "stages", List.of(
+                                Map.of(
+                                        "id", stageId,
+                                        "name", "Обычный этап",
+                                        "order", 1,
+                                        "leagueId", leagueId,
+                                        "stageType", "REGULAR"
+                                )
+                        )
                 ))
                 .when()
                 .post("/api/q/v1/tournaments/update/" + id)
@@ -164,7 +192,8 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id))
-                .body("data.name", equalTo("Test Tournament Updated"));
+                .body("data.name", equalTo("Test Tournament Updated"))
+                .body("data.stages[0].stageType", equalTo("REGULAR"));
 
         authorized()
                 .contentType("application/json")
