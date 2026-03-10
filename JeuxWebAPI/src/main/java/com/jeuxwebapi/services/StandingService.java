@@ -1,6 +1,8 @@
 package com.jeuxwebapi.services;
 
+import Enums.PrevPlaysType;
 import com.jeuxwebapi.models.StandingDto;
+import com.jeuxwebapi.models.StandingMatchType;
 import com.jeuxwebapi.results.ServiceListResult;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,26 +13,85 @@ import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class StandingService {
-    private static final String STANDINGS_SQL = """
+    private static final String STANDINGS_SQL_TEMPLATE = """
             select *
-            from football."getTournamentStandings"(:leagueId, :tournamentId, :stageId)
+            from football."getTournamentStandingsEx"(
+                :leagueId,
+                :tournamentId,
+                :stageId,
+                %s,
+                null,
+                %s,
+                %s,
+                %s
+            )
             """;
 
     @Inject
     Mutiny.SessionFactory sessionFactory;
 
-    public Uni<ServiceListResult<StandingDto>> getStandings(Long leagueId, Long tournamentId, Long stageId) {
+    public Uni<ServiceListResult<StandingDto>> getStandings(
+            Long leagueId,
+            Long tournamentId,
+            Long stageId,
+            String tgroup,
+            StandingMatchType matchType,
+            Long prevStageId,
+            PrevPlaysType prevPlays
+    ) {
         ServiceListResult<StandingDto> invalidResult = validateRequiredParams(leagueId, tournamentId, stageId);
         if (invalidResult != null) {
             return Uni.createFrom().item(invalidResult);
         }
 
-        return sessionFactory.withSession(session -> session.createNativeQuery(STANDINGS_SQL)
-                .setParameter("leagueId", leagueId)
-                .setParameter("tournamentId", tournamentId)
-                .setParameter("stageId", stageId)
-                .getResultList()
-                .map(this::toResult));
+        Integer matchTypeCode = toMatchTypeCode(matchType);
+        Integer prevPlaysCode = toPrevPlaysCode(prevPlays);
+        String standingsSql = STANDINGS_SQL_TEMPLATE.formatted(
+                optionalParam("tgroup", tgroup),
+                optionalParam("matchtype", matchTypeCode),
+                optionalParam("prevstageid", prevStageId),
+                optionalParam("prevplays", prevPlaysCode)
+        );
+
+        return sessionFactory.withSession(session -> {
+            var query = session.createNativeQuery(standingsSql)
+                    .setParameter("leagueId", leagueId)
+                    .setParameter("tournamentId", tournamentId)
+                    .setParameter("stageId", stageId);
+
+            if (tgroup != null) {
+                query.setParameter("tgroup", tgroup);
+            }
+            if (matchTypeCode != null) {
+                query.setParameter("matchtype", matchTypeCode);
+            }
+            if (prevStageId != null) {
+                query.setParameter("prevstageid", prevStageId);
+            }
+            if (prevPlaysCode != null) {
+                query.setParameter("prevplays", prevPlaysCode);
+            }
+
+            return query.getResultList().map(this::toResult);
+        });
+    }
+
+    private static Integer toMatchTypeCode(StandingMatchType matchType) {
+        if (matchType == null || matchType == StandingMatchType.ALL) {
+            return null;
+        }
+        return matchType == StandingMatchType.HOME ? 1 : -1;
+    }
+
+    private static Integer toPrevPlaysCode(PrevPlaysType prevPlays) {
+        if (prevPlays == null) {
+            return null;
+        }
+        return prevPlays == PrevPlaysType.SAMETEAMS ? 1 : 0;
+    }
+
+    private static String optionalParam(String paramName, Object value) {
+        return value == null ? "null" : ":" + paramName;
     }
 
     private ServiceListResult<StandingDto> toResult(List<?> rows) {
@@ -70,7 +131,7 @@ public class StandingService {
         return new StandingDto(
                 toLong(row[0]),
                 toStringValue(row[1]),
-                toInt(row[2]),
+                toStringValue(row[2]),
                 toInt(row[3]),
                 toInt(row[4]),
                 toInt(row[5]),
@@ -93,7 +154,8 @@ public class StandingService {
                 toInt(row[22]),
                 toInt(row[23]),
                 toInt(row[24]),
-                toInt(row[25])
+                toInt(row[25]),
+                toInt(row[26])
         );
     }
 

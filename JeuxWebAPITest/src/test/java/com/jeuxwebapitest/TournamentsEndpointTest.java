@@ -10,6 +10,7 @@ import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import com.jeuxwebapitest.util.H2FlywayTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,7 +106,8 @@ public class TournamentsEndpointTest {
                     .then()
                     .statusCode(200)
                     .body("result", equalTo(true))
-                    .body("data.id", equalTo(id));
+                    .body("data.id", equalTo(id))
+                    .body("data.stages[0].stageType", notNullValue());
         }
 
         authorized()
@@ -138,7 +140,25 @@ public class TournamentsEndpointTest {
                         "name", "Test Tournament Create",
                         "stYear", 2024,
                         "fnYear", 2025,
-                        "leagueId", leagueId
+                        "leagueId", leagueId,
+                        "stages", List.of(
+                                Map.of(
+                                        "name", "Золотой матч",
+                                        "order", 1,
+                                        "leagueId", leagueId,
+                                        "stageType", "EXTRAPLAY",
+                                        "groups", List.of("A", "B"),
+                                        "prevPlays", "ALLPLAYS"
+                                ),
+                                Map.of(
+                                        "name", "Переходные матчи",
+                                        "order", 2,
+                                        "leagueId", leagueId,
+                                        "stageType", "PLAYOFF",
+                                        "groups", List.of("C"),
+                                        "prevPlays", "SAMETEAMS"
+                                )
+                        )
                 ))
                 .when()
                 .post("/api/q/v1/tournaments/create")
@@ -146,8 +166,50 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", notNullValue())
+                .body("data.stages[0].stageType", equalTo("EXTRAPLAY"))
+                .body("data.stages[0].groups[0]", equalTo("A"))
+                .body("data.stages[0].prevPlays", equalTo("ALLPLAYS"))
                 .extract()
                 .path("data.id");
+
+        List<Map<String, Object>> stages = authorized()
+                .when()
+                .get("/api/q/v1/tournaments/" + id)
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.stages");
+
+        if (stages == null || stages.size() < 2) {
+            return;
+        }
+
+        Integer firstStageId = (Integer) stages.get(0).get("id");
+        Integer secondStageId = (Integer) stages.get(1).get("id");
+
+        if (firstStageId == null || secondStageId == null) {
+            return;
+        }
+
+        Map<String, Object> firstStageUpdate = new HashMap<>();
+        firstStageUpdate.put("id", firstStageId);
+        firstStageUpdate.put("name", "Обычный этап");
+        firstStageUpdate.put("order", 1);
+        firstStageUpdate.put("leagueId", leagueId);
+        firstStageUpdate.put("stageType", "REGULAR");
+        firstStageUpdate.put("groups", List.of("A", "B"));
+        firstStageUpdate.put("prevPlays", "ALLPLAYS");
+
+        Map<String, Object> secondStageUpdate = new HashMap<>();
+        secondStageUpdate.put("id", secondStageId);
+        secondStageUpdate.put("name", "Плей-офф");
+        secondStageUpdate.put("order", 2);
+        secondStageUpdate.put("leagueId", leagueId);
+        secondStageUpdate.put("stageType", "PLAYOFF");
+        secondStageUpdate.put("groups", List.of("C"));
+        secondStageUpdate.put("prevStageId", firstStageId);
+        secondStageUpdate.put("prevPlays", "SAMETEAMS");
 
         authorized()
                 .contentType("application/json")
@@ -156,7 +218,8 @@ public class TournamentsEndpointTest {
                         "name", "Test Tournament Updated",
                         "stYear", 2024,
                         "fnYear", 2026,
-                        "leagueId", leagueId
+                        "leagueId", leagueId,
+                        "stages", List.of(firstStageUpdate, secondStageUpdate)
                 ))
                 .when()
                 .post("/api/q/v1/tournaments/update/" + id)
@@ -164,7 +227,12 @@ public class TournamentsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id))
-                .body("data.name", equalTo("Test Tournament Updated"));
+                .body("data.name", equalTo("Test Tournament Updated"))
+                .body("data.stages[0].stageType", equalTo("REGULAR"))
+                .body("data.stages[1].stageType", equalTo("PLAYOFF"))
+                .body("data.stages[1].prevStageId", equalTo(firstStageId))
+                .body("data.stages[1].prevPlays", equalTo("SAMETEAMS"))
+                .body("data.stages[1].groups[0]", equalTo("C"));
 
         authorized()
                 .contentType("application/json")

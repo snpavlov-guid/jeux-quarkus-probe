@@ -60,9 +60,9 @@ public class DatabaseContextTest {
         var info = flyway.info();
         MigrationInfo[] applied = info.applied();
         Assertions.assertNotNull(applied, "Applied migrations list must not be null");
-        Assertions.assertEquals(2, applied.length, "All Flyway migrations must be applied");
+        Assertions.assertEquals(5, applied.length, "All Flyway migrations must be applied");
         Assertions.assertNotNull(info.current(), "Current migration version must exist");
-        Assertions.assertEquals("0002", info.current().getVersion().toString(), "Current migration version must be 0002");
+        Assertions.assertEquals("0005", info.current().getVersion().toString(), "Current migration version must be 0005");
     }
 
     @Test

@@ -32,6 +32,7 @@ public class MatchService {
             Long leagueId,
             Long tournamentId,
             Long stageId,
+            String tgroup,
             String hTeamName,
             String gTeamName,
             List<Integer> tours,
@@ -51,6 +52,7 @@ public class MatchService {
                     leagueId,
                     tournamentId,
                     stageId,
+                    tgroup,
                     hTeamName,
                     gTeamName,
                     tours,
@@ -72,7 +74,17 @@ public class MatchService {
 
             return query.getResultList()
                     .map(items -> items.stream().map(MatchService::toDto).toList())
-                    .chain(items -> countMatches(session, leagueId, tournamentId, stageId, hTeamName, gTeamName, tours, date)
+                    .chain(items -> countMatches(
+                                    session,
+                                    leagueId,
+                                    tournamentId,
+                                    stageId,
+                                    tgroup,
+                                    hTeamName,
+                                    gTeamName,
+                                    tours,
+                                    date
+                            )
                             .map(total -> {
                                 ServiceListResult<MatchDto> result = new ServiceListResult<>();
                                 result.setResult(true);
@@ -108,6 +120,7 @@ public class MatchService {
             match.setGScore(createDto.getGScore());
             match.setCity(createDto.getCity());
             match.setStadium(createDto.getStadium());
+            match.setGroup(createDto.getGroup());
             match.setLeagueId(createDto.getLeagueId());
             match.setTournamentId(createDto.getTournamentId());
             match.setStageId(createDto.getStageId());
@@ -140,6 +153,7 @@ public class MatchService {
                     match.setGScore(updateDto.getGScore());
                     match.setCity(updateDto.getCity());
                     match.setStadium(updateDto.getStadium());
+                    match.setGroup(updateDto.getGroup());
                     match.setLeagueId(updateDto.getLeagueId());
                     match.setTournamentId(updateDto.getTournamentId());
                     match.setStageId(updateDto.getStageId());
@@ -179,6 +193,7 @@ public class MatchService {
             Long leagueId,
             Long tournamentId,
             Long stageId,
+            String tgroup,
             String hTeamName,
             String gTeamName,
             List<Integer> tours,
@@ -193,6 +208,7 @@ public class MatchService {
                 leagueId,
                 tournamentId,
                 stageId,
+                tgroup,
                 hTeamName,
                 gTeamName,
                 tours,
@@ -212,6 +228,7 @@ public class MatchService {
             Long leagueId,
             Long tournamentId,
             Long stageId,
+            String tgroup,
             String hTeamName,
             String gTeamName,
             List<Integer> tours,
@@ -227,6 +244,9 @@ public class MatchService {
         }
         if (stageId != null) {
             predicates.add(cb.equal(root.get("StageId"), stageId));
+        }
+        if (tgroup != null && !tgroup.isBlank()) {
+            predicates.add(cb.equal(cb.lower(root.get("Group")), tgroup.toLowerCase()));
         }
         if (hTeamName != null && !hTeamName.isBlank()) {
             Join<Match, Team> hTeam = root.join("HTeam", JoinType.INNER);
@@ -258,6 +278,7 @@ public class MatchService {
                 match.getGScore(),
                 match.getCity(),
                 match.getStadium(),
+                match.getGroup(),
                 match.getLeagueId(),
                 match.getTournamentId(),
                 match.getStageId(),

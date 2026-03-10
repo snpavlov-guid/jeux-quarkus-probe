@@ -24,6 +24,7 @@ import org.hibernate.annotations.OnDeleteAction;
                 @jakarta.persistence.Index(name = "idx_match_g_team_id", columnList = "g_team_id"),
                 @jakarta.persistence.Index(name = "idx_match_tour", columnList = "tour"),
                 @jakarta.persistence.Index(name = "idx_match_round", columnList = "round"),
+                @jakarta.persistence.Index(name = "idx_match_group", columnList = "\"group\""),
                 @jakarta.persistence.Index(name = "idx_match_date", columnList = "date"),
                 @jakarta.persistence.Index(name = "idx_match_h_score", columnList = "h_score"),
                 @jakarta.persistence.Index(name = "idx_match_g_score", columnList = "g_score"),
@@ -65,6 +66,10 @@ public class Match {
     @Column(name = "stadium", length = 128, nullable = true)
     // Match stadium (nullable)
     private String Stadium;
+
+    @Column(name = "\"group\"", length = 32, nullable = true)
+    // Match group label (nullable)
+    private String Group;
 
     @Column(name = "league_id", nullable = false)
     // Match league id
@@ -209,6 +214,14 @@ public class Match {
 
     public void setStadium(String stadium) {
         this.Stadium = stadium;
+    }
+
+    public String getGroup() {
+        return Group;
+    }
+
+    public void setGroup(String group) {
+        this.Group = group;
     }
 
     public Long getLeagueId() {

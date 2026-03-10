@@ -10,6 +10,7 @@ public class MatchCreateDto {
     private int gScore;
     private String city;
     private String stadium;
+    private String group;
     private Long leagueId;
     private Long tournamentId;
     private Long stageId;
@@ -27,6 +28,7 @@ public class MatchCreateDto {
             int gScore,
             String city,
             String stadium,
+            String group,
             Long leagueId,
             Long tournamentId,
             Long stageId,
@@ -40,6 +42,7 @@ public class MatchCreateDto {
         this.gScore = gScore;
         this.city = city;
         this.stadium = stadium;
+        this.group = group;
         this.leagueId = leagueId;
         this.tournamentId = tournamentId;
         this.stageId = stageId;
@@ -101,6 +104,14 @@ public class MatchCreateDto {
 
     public void setStadium(String stadium) {
         this.stadium = stadium;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 
     public Long getLeagueId() {

@@ -124,6 +124,7 @@ mvn -pl JeuxWebAPI clean package
 Команда запуска (PowerShell):
 ```
 mvn -pl JeuxWebAPI quarkus:dev
+mvn -f JeuxWebAPI/pom.xml quarkus:dev
 ```
 
 По умолчанию API доступно по адресу:

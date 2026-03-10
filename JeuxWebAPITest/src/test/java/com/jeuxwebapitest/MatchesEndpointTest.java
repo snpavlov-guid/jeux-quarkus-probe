@@ -81,6 +81,7 @@ public class MatchesEndpointTest {
             Number leagueId = (Number) base.get("leagueId");
             Number stageId = (Number) base.get("stageId");
             Number tournamentId = (Number) base.get("tournamentId");
+            String tgroup = (String) base.get("group");
 
             if (leagueId != null && stageId != null) {
                 authorized()
@@ -102,6 +103,17 @@ public class MatchesEndpointTest {
                         .statusCode(200)
                         .body("result", equalTo(true))
                         .body("items.tournamentId", everyItem(equalTo(tournamentId.intValue())));
+            }
+
+            if (tgroup != null && !tgroup.isBlank()) {
+                authorized()
+                        .queryParam("tgroup", tgroup)
+                        .when()
+                        .get("/api/q/v1/matches")
+                        .then()
+                        .statusCode(200)
+                        .body("result", equalTo(true))
+                        .body("items.group", everyItem(equalTo(tgroup)));
             }
         }
     }
@@ -169,6 +181,7 @@ public class MatchesEndpointTest {
         createBody.put("round", "R1");
         createBody.put("hScore", 0);
         createBody.put("gScore", 0);
+        createBody.put("group", "GroupA");
         createBody.put("leagueId", leagueId.longValue());
         createBody.put("tournamentId", tournamentId.longValue());
         createBody.put("stageId", stageId.longValue());
@@ -184,6 +197,7 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", notNullValue())
+                .body("data.group", equalTo("GroupA"))
                 .extract()
                 .path("data.id");
 
@@ -192,6 +206,7 @@ public class MatchesEndpointTest {
         updateBody.put("round", "R2");
         updateBody.put("hScore", 1);
         updateBody.put("gScore", 2);
+        updateBody.put("group", "GroupB");
 
         authorized()
                 .contentType("application/json")
@@ -202,7 +217,8 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id))
-                .body("data.round", equalTo("R2"));
+                .body("data.round", equalTo("R2"))
+                .body("data.group", equalTo("GroupB"));
 
         authorized()
                 .contentType("application/json")

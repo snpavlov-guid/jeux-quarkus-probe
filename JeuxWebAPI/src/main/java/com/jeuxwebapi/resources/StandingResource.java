@@ -1,6 +1,8 @@
 package com.jeuxwebapi.resources;
 
+import Enums.PrevPlaysType;
 import com.jeuxwebapi.models.StandingDto;
+import com.jeuxwebapi.models.StandingMatchType;
 import com.jeuxwebapi.results.ServiceListResult;
 import com.jeuxwebapi.services.StandingService;
 import io.quarkus.security.Authenticated;
@@ -25,8 +27,20 @@ public class StandingResource {
     public Uni<ServiceListResult<StandingDto>> getStandings(
             @QueryParam("leagueId") Long leagueId,
             @QueryParam("tournamentId") Long tournamentId,
-            @QueryParam("stageId") Long stageId
+            @QueryParam("stageId") Long stageId,
+            @QueryParam("tgroup") String tgroup,
+            @QueryParam("matchtype") StandingMatchType matchType,
+            @QueryParam("prevstageid") Long prevStageId,
+            @QueryParam("prevplays") PrevPlaysType prevPlays
     ) {
-        return standingService.getStandings(leagueId, tournamentId, stageId);
+        return standingService.getStandings(
+                leagueId,
+                tournamentId,
+                stageId,
+                tgroup,
+                matchType,
+                prevStageId,
+                prevPlays
+        );
     }
 }

@@ -38,6 +38,7 @@ public class MatchResource {
             @QueryParam("leagueId") Long leagueId,
             @QueryParam("tournamentId") Long tournamentId,
             @QueryParam("stageId") Long stageId,
+            @QueryParam("tgroup") String tgroup,
             @QueryParam("hteam") String hTeamName,
             @QueryParam("gteam") String gTeamName,
             @QueryParam("tours") String tours,
@@ -46,6 +47,7 @@ public class MatchResource {
             @QueryParam("size") Integer size,
             @QueryParam("order") String order
     ) {
+        String tournamentGroup = (tgroup != null && !tgroup.isBlank()) ? tgroup : null;
         String homeTeam = (hTeamName != null && !hTeamName.isBlank()) ? hTeamName : null;
         String guestTeam = (gTeamName != null && !gTeamName.isBlank()) ? gTeamName : null;
         List<Integer> tourValues = QueryUtils.parseTours(tours);
@@ -54,6 +56,7 @@ public class MatchResource {
                 leagueId,
                 tournamentId,
                 stageId,
+                tournamentGroup,
                 homeTeam,
                 guestTeam,
                 tourValues,

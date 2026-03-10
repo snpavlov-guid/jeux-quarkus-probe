@@ -17,13 +17,14 @@ public class MatchUpdateDto extends MatchCreateDto {
             int gScore,
             String city,
             String stadium,
+            String group,
             Long leagueId,
             Long tournamentId,
             Long stageId,
             Long hTeamId,
             Long gTeamId
     ) {
-        super(tour, round, date, hScore, gScore, city, stadium, leagueId, tournamentId, stageId, hTeamId, gTeamId);
+        super(tour, round, date, hScore, gScore, city, stadium, group, leagueId, tournamentId, stageId, hTeamId, gTeamId);
         this.id = id;
     }
 

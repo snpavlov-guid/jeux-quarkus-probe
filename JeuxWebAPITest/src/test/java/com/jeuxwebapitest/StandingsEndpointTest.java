@@ -37,7 +37,26 @@ public class StandingsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("items", notNullValue())
+                .body("items[0].containsKey('teamLogo')", equalTo(true))
                 .body("total", equalTo(16))
                 .body("items.size()", equalTo(16));
+    }
+
+    @Test
+    public void standingsEndpointAcceptsExtendedQueryParams() {
+        authorized()
+                .queryParam("leagueId", 1)
+                .queryParam("tournamentId", 36)
+                .queryParam("stageId", 51)
+                .queryParam("tgroup", "A")
+                .queryParam("matchtype", "HOME")
+                .queryParam("prevstageid", 50)
+                .queryParam("prevplays", "SAMETEAMS")
+                .when()
+                .get("/api/q/v1/standings")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .body("items", notNullValue());
     }
 }

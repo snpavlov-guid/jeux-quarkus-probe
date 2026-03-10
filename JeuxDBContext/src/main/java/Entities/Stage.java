@@ -1,7 +1,11 @@
 package Entities;
 
+import Enums.PrevPlaysType;
+import Enums.StageType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -11,8 +15,10 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -48,6 +54,25 @@ public class Stage {
     @Column(name = "tournament_id", nullable = false)
     // Stage tournament id
     private Long TournamentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "stage_type", length = 16, nullable = false)
+    // Stage type
+    private StageType StageType = Enums.StageType.REGULAR;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "groups", columnDefinition = "varchar(32)[]")
+    // Stage groups (nullable array of short labels)
+    private String[] Groups;
+
+    @Column(name = "prev_stage_id", nullable = true)
+    // Previous stage id (nullable)
+    private Long PrevStageId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "prev_plays", length = 16, nullable = true)
+    // Previous plays mode (nullable)
+    private PrevPlaysType PrevPlays;
 
     @ManyToOne
     @JoinColumn(
@@ -139,6 +164,38 @@ public class Stage {
     public void setTournament(Tournament tournament) {
         this.Tournament = tournament;
         this.TournamentId = tournament == null ? null : tournament.getId();
+    }
+
+    public StageType getStageType() {
+        return StageType;
+    }
+
+    public void setStageType(StageType stageType) {
+        this.StageType = stageType;
+    }
+
+    public String[] getGroups() {
+        return Groups;
+    }
+
+    public void setGroups(String[] groups) {
+        this.Groups = groups;
+    }
+
+    public Long getPrevStageId() {
+        return PrevStageId;
+    }
+
+    public void setPrevStageId(Long prevStageId) {
+        this.PrevStageId = prevStageId;
+    }
+
+    public PrevPlaysType getPrevPlays() {
+        return PrevPlays;
+    }
+
+    public void setPrevPlays(PrevPlaysType prevPlays) {
+        this.PrevPlays = prevPlays;
     }
 
     public List<Match> getMatches() {
