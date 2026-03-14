@@ -31,8 +31,18 @@ public class StandingResource {
             @QueryParam("tgroup") String tgroup,
             @QueryParam("matchtype") StandingMatchType matchType,
             @QueryParam("prevstageid") Long prevStageId,
-            @QueryParam("prevplays") PrevPlaysType prevPlays
+            @QueryParam("prevplays") String prevPlaysRaw
     ) {
+        PrevPlaysType prevPlays = parsePrevPlays(prevPlaysRaw);
+        if (prevPlaysRaw != null && prevPlays == null) {
+            ServiceListResult<StandingDto> invalidResult = new ServiceListResult<>();
+            invalidResult.setResult(false);
+            invalidResult.setMessage("Параметр prevplays должен быть ALLPLAYS или SAMETEAMS.");
+            invalidResult.setItems(java.util.List.of());
+            invalidResult.setTotal(0);
+            return Uni.createFrom().item(invalidResult);
+        }
+
         return standingService.getStandings(
                 leagueId,
                 tournamentId,
@@ -42,5 +52,16 @@ public class StandingResource {
                 prevStageId,
                 prevPlays
         );
+    }
+
+    private static PrevPlaysType parsePrevPlays(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return PrevPlaysType.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }
