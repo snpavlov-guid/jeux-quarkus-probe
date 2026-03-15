@@ -29,6 +29,8 @@ public class StandingService {
 
     @Inject
     Mutiny.SessionFactory sessionFactory;
+    @Inject
+    ArrangeStandingService arrangeStandingService;
 
     public Uni<ServiceListResult<StandingDto>> getStandings(
             Long leagueId,
@@ -72,7 +74,21 @@ public class StandingService {
                 query.setParameter("prevplays", prevPlaysCode);
             }
 
-            return query.getResultList().map(this::toResult);
+            return query.getResultList()
+                    .map(this::toResult)
+                    .flatMap(result -> arrangeStandingService.ArrangeStandings(
+                                leagueId,
+                                tournamentId,
+                                stageId,
+                                tgroup,
+                                matchType,
+                                prevStageId,
+                                prevPlays,
+                                result.getItems()
+                        ).map(arrangedItems -> {
+                            result.setItems(arrangedItems);
+                            return result;
+                        }));
         });
     }
 

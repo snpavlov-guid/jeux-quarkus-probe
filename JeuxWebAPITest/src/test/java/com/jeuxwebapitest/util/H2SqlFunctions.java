@@ -116,7 +116,7 @@ public final class H2SqlFunctions {
             Long tournamentId,
             Long stageId,
             String group,
-            Object teamIds
+            Long[] teamIds
     ) throws SQLException {
         return getMatchResults(connection, leagueId, tournamentId, stageId, group, teamIds, true);
     }
@@ -127,7 +127,7 @@ public final class H2SqlFunctions {
             Long tournamentId,
             Long stageId,
             String group,
-            Object teamIds
+            Long[] teamIds
     ) throws SQLException {
         return getMatchResults(connection, leagueId, tournamentId, stageId, group, teamIds, false);
     }
@@ -138,7 +138,7 @@ public final class H2SqlFunctions {
             Long tournamentId,
             Long stageId,
             String group,
-            Object teamIds,
+            Long[] teamIds,
             Integer matchType
     ) throws SQLException {
         SimpleResultSet resultSet = createMatchResultsResultSet();
@@ -208,7 +208,7 @@ public final class H2SqlFunctions {
             Long tournamentId,
             Long stageId,
             String group,
-            Object teamIds,
+            Long[] teamIds,
             Integer matchType,
             Long prevStageId,
             Integer prevPlays

@@ -28,6 +28,8 @@ public class StandingDto {
     private int gScored;
     private int gMissed;
     private int gDiff;
+    private int order;
+    private int subOrder;
 
     public StandingDto() {
     }
@@ -304,5 +306,21 @@ public class StandingDto {
 
     public void setGDiff(int gDiff) {
         this.gDiff = gDiff;
+    }
+
+    public int getOrder() {
+        return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
+    public int getSubOrder() {
+        return subOrder;
+    }
+
+    public void setSubOrder(int subOrder) {
+        this.subOrder = subOrder;
     }
 }
