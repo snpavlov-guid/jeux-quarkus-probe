@@ -5,11 +5,15 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.jeuxwebapitest.util.KeycloakAuthUtil;
 import com.jeuxwebapitest.util.H2FlywayTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.response.Response;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -274,6 +278,67 @@ public class TournamentsEndpointTest {
                 .then()
                 .statusCode(200)
                 .body("result", equalTo(true));
+    }
+
+    @Test
+    public void tournamentsTeamsEndpointSupportsFilteringAndNotFound() {
+        Response filteredResponse = authorized()
+                .queryParam("stageId", 51)
+                .when()
+                .get("/api/q/v1/tournaments/36/teams")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .body("items", notNullValue())
+                .extract()
+                .response();
+
+        List<Integer> filteredIds = filteredResponse.jsonPath().getList("items.id");
+        assertTrue(filteredIds != null && !filteredIds.isEmpty());
+
+        List<Integer> sortedFilteredIds = filteredIds.stream().sorted().toList();
+        assertEquals(sortedFilteredIds, filteredIds);
+        assertEquals(filteredIds.size(), new HashSet<>(filteredIds).size());
+
+        authorized()
+                .queryParam("stageId", 22)
+                .queryParam("tgroup", "A")
+                .when()
+                .get("/api/q/v1/tournaments/12/teams")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .body("items", notNullValue())
+                .body("total", greaterThanOrEqualTo(0));
+
+        authorized()
+                .when()
+                .get("/api/q/v1/tournaments/12/teams")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .body("items", notNullValue())
+                .body("total", greaterThanOrEqualTo(0));
+
+        authorized()
+                .queryParam("stageId", 22)
+                .when()
+                .get("/api/q/v1/tournaments/12/teams")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .body("items", notNullValue())
+                .body("total", greaterThanOrEqualTo(0));
+
+        authorized()
+                .when()
+                .get("/api/q/v1/tournaments/-1/teams")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(false))
+                .body("items.size()", equalTo(0))
+                .body("total", equalTo(0))
+                .body("message", equalTo("Сущность 'Tournament' с id: -1 не найдена!"));
     }
 
 }

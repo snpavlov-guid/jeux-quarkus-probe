@@ -1,6 +1,7 @@
 package com.jeuxwebapi.resources;
 
 import com.jeuxwebapi.auth.AppRoles;
+import com.jeuxwebapi.models.TeamDto;
 import com.jeuxwebapi.models.TournamentCreateDto;
 import com.jeuxwebapi.models.TournamentDto;
 import com.jeuxwebapi.models.TournamentUpdateDto;
@@ -60,6 +61,17 @@ public class TournamentResource {
     @Path("/{id}")
     public Uni<ServiceDataResult<TournamentDto>> getTournamentById(@PathParam("id") long id) {
         return tournamentService.findTournamentById(id);
+    }
+
+    @GET
+    @Path("/{id}/teams")
+    public Uni<ServiceListResult<TeamDto>> getTournamentTeams(
+            @PathParam("id") long id,
+            @QueryParam("stageId") Long stageId,
+            @QueryParam("tgroup") String tgroup
+    ) {
+        String normalizedGroup = (tgroup != null && !tgroup.isBlank()) ? tgroup : null;
+        return tournamentService.findTournamentTeams(id, stageId, normalizedGroup);
     }
 
     @POST

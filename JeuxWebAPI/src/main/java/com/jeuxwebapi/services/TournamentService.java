@@ -4,6 +4,7 @@ import Entities.Stage;
 import Entities.Tournament;
 import com.jeuxwebapi.models.StageUpdateDto;
 import com.jeuxwebapi.models.StageDto;
+import com.jeuxwebapi.models.TeamDto;
 import com.jeuxwebapi.models.TournamentCreateDto;
 import com.jeuxwebapi.models.TournamentDto;
 import com.jeuxwebapi.models.TournamentUpdateDto;
@@ -13,6 +14,7 @@ import com.jeuxwebapi.util.QueryUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -149,6 +151,64 @@ public class TournamentService {
                 }));
     }
 
+    public Uni<ServiceListResult<TeamDto>> findTournamentTeams(long tournamentId, Long stageId, String tgroup) {
+        return sessionFactory.withSession(session -> session.find(Tournament.class, tournamentId)
+                .chain(tournament -> {
+                    if (tournament == null) {
+                        ServiceListResult<TeamDto> result = new ServiceListResult<>();
+                        result.setResult(false);
+                        result.setMessage(String.format("Сущность 'Tournament' с id: %d не найдена!", tournamentId));
+                        result.setItems(List.of());
+                        result.setTotal(0);
+                        return Uni.createFrom().item(result);
+                    }
+
+                    String normalizedGroup = (tgroup == null || tgroup.isBlank()) ? null : tgroup.toLowerCase();
+                    String stageFilter = stageId == null ? "1=1" : "m.stage_id = :stageId";
+                    String groupFilter = normalizedGroup == null ? "1=1" : "lower(m.\"group\") = :tgroup";
+
+                    String sql = """
+                            select t.id, t.name, t.short_name, t.city, t.logo_url
+                            from football."Team" t
+                            join (
+                                select m.h_team_id as team_id
+                                from football."Match" m
+                                where m.tournament_id = :tournamentId
+                                  and %s
+                                  and %s
+                                union
+                                select m.g_team_id as team_id
+                                from football."Match" m
+                                where m.tournament_id = :tournamentId
+                                  and %s
+                                  and %s
+                            ) mt on mt.team_id = t.id
+                            order by t.id
+                            """.formatted(stageFilter, groupFilter, stageFilter, groupFilter);
+
+                    var query = session.createNativeQuery(sql)
+                            .setParameter("tournamentId", tournamentId);
+                    if (stageId != null) {
+                        query.setParameter("stageId", stageId);
+                    }
+                    if (normalizedGroup != null) {
+                        query.setParameter("tgroup", normalizedGroup);
+                    }
+
+                    return query.getResultList()
+                            .map(rows -> {
+                                List<TeamDto> items = rows.stream()
+                                        .map(TournamentService::toTeamDtoFromNativeRow)
+                                        .toList();
+                                ServiceListResult<TeamDto> result = new ServiceListResult<>();
+                                result.setResult(true);
+                                result.setItems(items);
+                                result.setTotal(items.size());
+                                return result;
+                            });
+                }));
+    }
+
     private Uni<Integer> countTournaments(Mutiny.Session session, Long leagueId, Integer season) {
         CriteriaBuilder cb = sessionFactory.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
@@ -221,6 +281,25 @@ public class TournamentService {
                 stage.getGroups() == null ? null : Arrays.asList(stage.getGroups()),
                 stage.getPrevStageId(),
                 stage.getPrevPlays()
+        );
+    }
+
+    private static TeamDto toTeamDtoFromNativeRow(Object rowObject) {
+        Object[] row;
+        if (rowObject instanceof Object[] values) {
+            row = values;
+        } else if (rowObject instanceof Tuple tuple) {
+            row = tuple.toArray();
+        } else {
+            throw new IllegalStateException("Unexpected native row type: " + rowObject.getClass().getName());
+        }
+
+        return new TeamDto(
+                row[0] == null ? 0L : ((Number) row[0]).longValue(),
+                row[1] == null ? null : row[1].toString(),
+                row[2] == null ? null : row[2].toString(),
+                row[3] == null ? null : row[3].toString(),
+                row[4] == null ? null : row[4].toString()
         );
     }
 
