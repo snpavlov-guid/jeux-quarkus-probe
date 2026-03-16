@@ -164,7 +164,7 @@ taskkill /PID <pid> /F
 
 Команда запуска (PowerShell):
 ```
-mvn -pl JeuxWebAPITest test
+mvn -pl JeuxWebAPITest -am test
 ```
 
 #### Тестовая БД H2 + миграции

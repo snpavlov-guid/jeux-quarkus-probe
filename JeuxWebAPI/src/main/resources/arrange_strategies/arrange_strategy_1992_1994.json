@@ -1,0 +1,49 @@
+{
+    "ALL": [
+        { "points": "desc" },
+        { "wins": "desc" },
+        { "personalPlays" : {
+            "items": [
+                { "points": "desc" },
+                { "wins": "desc" },
+                { "diff": "desc" },
+                { "scored": "desc" },
+                { "gscored": "desc" }
+            ],
+            "order": "asc"
+        } },
+        { "diff": "desc" },
+        { "scored": "desc" },
+        { "gscored": "desc" }
+    ],
+    "HOME": [
+        { "hpoints": "desc" },
+        { "hwins": "desc" },
+        { "personalPlays" : {
+            "items": [
+                { "hpoints": "desc" },
+                { "hwins": "desc" },
+                { "hdiff": "desc" },
+                { "hscored": "desc" }
+            ],
+            "order": "asc"
+        } },
+        { "hdiff": "desc" },
+        { "hscored": "desc" }
+    ],
+    "GUEST": [
+        { "gpoints": "desc" },
+        { "gwins": "desc" },
+        { "personalPlays" : {
+            "items": [
+                { "gpoints": "desc" },
+                { "gwins": "desc" },
+                { "gdiff": "desc" },
+                { "gscored": "desc" }
+            ],
+            "order": "asc"
+        } },
+        { "gdiff": "desc" },
+        { "gscored": "desc" }
+    ]
+}

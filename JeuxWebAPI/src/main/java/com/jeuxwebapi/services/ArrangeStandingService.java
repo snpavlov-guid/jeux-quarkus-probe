@@ -1,13 +1,16 @@
 package com.jeuxwebapi.services;
 
 import Enums.PrevPlaysType;
+import Entities.Tournament;
 import com.jeuxwebapi.models.StandingDto;
 import com.jeuxwebapi.models.StandingMatchType;
+import com.jeuxwebapi.models.TournamentDto;
+import com.jeuxwebapi.services.arrange_strategies.ArrangeStrategyFactory;
+import com.jeuxwebapi.services.arrange_strategies.IArrangeStrategy;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.Tuple;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,16 +53,18 @@ public class ArrangeStandingService {
         }
 
         StandingMatchType effectiveMatchType = matchType == null ? StandingMatchType.ALL : matchType;
-        return applySubOrder(
-                leagueId,
-                tournamentId,
-                stageId,
-                tgroup,
-                effectiveMatchType,
-                prevStageId,
-                prevPlays,
-                standings
-        ).map(result -> applyMainOrder(effectiveMatchType, result));
+        return resolveStrategy(tournamentId, effectiveMatchType)
+                .chain(strategy -> applySubOrder(
+                        leagueId,
+                        tournamentId,
+                        stageId,
+                        tgroup,
+                        effectiveMatchType,
+                        prevStageId,
+                        prevPlays,
+                        standings,
+                        strategy
+                ).map(result -> applyMainOrder(strategy, result)));
     }
 
     private Uni<List<StandingDto>> applySubOrder(
@@ -70,17 +75,13 @@ public class ArrangeStandingService {
             StandingMatchType matchType,
             Long prevStageId,
             PrevPlaysType prevPlays,
-            List<StandingDto> standings
+            List<StandingDto> standings,
+            IArrangeStrategy<StandingDto> strategy
     ) {
-        Function<StandingDto, Integer> groupField = switch (matchType) {
-            case HOME -> StandingDto::getHPoints;
-            case GUEST -> StandingDto::getGPoints;
-            case ALL -> StandingDto::getPoints;
-        };
-
-        Map<Integer, List<StandingDto>> groupedStandings = standings.stream()
+        Function<StandingDto, ?> groupKeyFunction = strategy.getGroupKeyFunction();
+        Map<Object, List<StandingDto>> groupedStandings = standings.stream()
                 .collect(Collectors.groupingBy(
-                        groupField,
+                        groupKeyFunction,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ));
@@ -100,7 +101,8 @@ public class ArrangeStandingService {
                         matchType,
                         prevStageId,
                         prevPlays,
-                        group
+                        group,
+                        strategy
                 ))
                 .toList();
 
@@ -121,7 +123,8 @@ public class ArrangeStandingService {
             StandingMatchType matchType,
             Long prevStageId,
             PrevPlaysType prevPlays,
-            List<StandingDto> standingsGroup
+            List<StandingDto> standingsGroup,
+            IArrangeStrategy<StandingDto> strategy
     ) {
         Integer matchTypeCode = toMatchTypeCode(matchType);
         Integer prevPlaysCode = toPrevPlaysCode(prevPlays);
@@ -158,7 +161,7 @@ public class ArrangeStandingService {
             return query.getResultList();
         }).map(rows -> rows.stream()
                 .map(ArrangeStandingService::toStandingDto)
-                .sorted(getGroupComparator(matchType))
+                .sorted(strategy.getGroupOrderComparator())
                 .toList()
         ).invoke(sortedGroup -> {
             Map<Long, Integer> subOrdersByTeamId = java.util.stream.IntStream.range(0, sortedGroup.size())
@@ -173,30 +176,9 @@ public class ArrangeStandingService {
         }).replaceWithVoid();
     }
 
-    private static Comparator<StandingDto> getGroupComparator(StandingMatchType matchType) {
-        return switch (matchType) {
-            case HOME -> Comparator.comparingInt(StandingDto::getHPoints).reversed()
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHScored).reversed())
-                    .thenComparing(StandingDto::getTeamId);
-            case GUEST -> Comparator.comparingInt(StandingDto::getGPoints).reversed()
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGScored).reversed())
-                    .thenComparing(StandingDto::getTeamId);
-            case ALL -> Comparator.comparingInt(StandingDto::getPoints).reversed()
-                    .thenComparing(Comparator.comparingInt(StandingDto::getWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getScored).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGScored).reversed())
-                    .thenComparing(StandingDto::getTeamId);
-        };
-    }
-
-    private static List<StandingDto> applyMainOrder(StandingMatchType matchType, List<StandingDto> standings) {
+    private static List<StandingDto> applyMainOrder(IArrangeStrategy<StandingDto> strategy, List<StandingDto> standings) {
         List<StandingDto> sortedStandings = standings.stream()
-                .sorted(getMainOrderComparator(matchType))
+                .sorted(strategy.getMainOrderComparator())
                 .toList();
 
         IntStream.range(0, sortedStandings.size())
@@ -205,25 +187,21 @@ public class ArrangeStandingService {
         return sortedStandings;
     }
 
-    private static Comparator<StandingDto> getMainOrderComparator(StandingMatchType matchType) {
-        return switch (matchType) {
-            case HOME -> Comparator.comparingInt(StandingDto::getHPoints).reversed()
-                    .thenComparingInt(StandingDto::getSubOrder)
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getHScored).reversed());
-            case GUEST -> Comparator.comparingInt(StandingDto::getGPoints).reversed()
-                    .thenComparingInt(StandingDto::getSubOrder)
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGScored).reversed());
-            case ALL -> Comparator.comparingInt(StandingDto::getPoints).reversed()
-                    .thenComparingInt(StandingDto::getSubOrder)
-                    .thenComparing(Comparator.comparingInt(StandingDto::getWins).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getDiff).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getScored).reversed())
-                    .thenComparing(Comparator.comparingInt(StandingDto::getGScored).reversed());
-        };
+    private Uni<IArrangeStrategy<StandingDto>> resolveStrategy(Long tournamentId, StandingMatchType matchType) {
+        if (tournamentId == null) {
+            return Uni.createFrom().item(new ArrangeStrategyFactory<StandingDto>((TournamentDto) null, matchType).create());
+        }
+
+        return sessionFactory.withSession(session -> session.find(Tournament.class, tournamentId))
+                .map(tournament -> {
+                    if (tournament == null) {
+                        return new ArrangeStrategyFactory<StandingDto>((TournamentDto) null, matchType).create();
+                    }
+
+                    TournamentDto tournamentDto = new TournamentDto();
+                    tournamentDto.setStYear(tournament.getStYear());
+                    return new ArrangeStrategyFactory<StandingDto>(tournamentDto, matchType).create();
+                });
     }
 
     private static Integer toMatchTypeCode(StandingMatchType matchType) {
