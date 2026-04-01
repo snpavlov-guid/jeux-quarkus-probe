@@ -10,6 +10,9 @@ import com.jeuxwebapi.models.TournamentDto;
 import com.jeuxwebapi.models.TournamentUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
+import com.jeuxwebapi.results.Validation;
+import com.jeuxwebapi.services.validations.ApplicationScopedDBContextInfoService;
+import com.jeuxwebapi.services.validations.StringLengthValidation;
 import com.jeuxwebapi.util.QueryUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -28,8 +31,13 @@ import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class TournamentService {
+    /** Согласовано с {@code columnDefinition = "varchar(32)[]"} у {@link Stage#getGroups()}. */
+    private static final int STAGE_GROUP_LABEL_MAX_LEN = 32;
+
     @Inject
     Mutiny.SessionFactory sessionFactory;
+    @Inject
+    ApplicationScopedDBContextInfoService dbContextInfoService;
 
     public Uni<ServiceListResult<TournamentDto>> findTournaments(Long leagueId, Integer season, Integer skip, Integer size, String order) {
         return sessionFactory.withSession(session -> {
@@ -86,6 +94,10 @@ public class TournamentService {
     }
 
     public Uni<ServiceDataResult<TournamentDto>> createTournament(TournamentCreateDto createDto) {
+        ServiceDataResult<TournamentDto> validation = validateTournamentCreateUpdate(createDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> {
             Tournament tournament = new Tournament();
             tournament.setName(createDto.getName());
@@ -106,6 +118,10 @@ public class TournamentService {
     }
 
     public Uni<ServiceDataResult<TournamentDto>> updateTournament(TournamentUpdateDto updateDto) {
+        ServiceDataResult<TournamentDto> validation = validateTournamentCreateUpdate(updateDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> session.find(Tournament.class, updateDto.getId())
                 .chain(tournament -> {
                     ServiceDataResult<TournamentDto> result = new ServiceDataResult<>();
@@ -301,6 +317,37 @@ public class TournamentService {
                 row[3] == null ? null : row[3].toString(),
                 row[4] == null ? null : row[4].toString()
         );
+    }
+
+    private ServiceDataResult<TournamentDto> validateTournamentCreateUpdate(TournamentCreateDto dto) {
+        List<Validation> validations = new ArrayList<>();
+        Map<String, Integer> tournamentLengths = dbContextInfoService.getStringFieldLengths(Tournament.class);
+        StringLengthValidation.addIfTooLong(validations, "name", dto.getName(), tournamentLengths, "Name");
+        if (dto.getStages() != null) {
+            Map<String, Integer> stageLengths = dbContextInfoService.getStringFieldLengths(Stage.class);
+            int stageIndex = 0;
+            for (StageUpdateDto stageDto : dto.getStages()) {
+                StringLengthValidation.addIfTooLong(
+                        validations,
+                        "stages[" + stageIndex + "].name",
+                        stageDto.getName(),
+                        stageLengths,
+                        "Name");
+                if (stageDto.getGroups() != null) {
+                    int groupIndex = 0;
+                    for (String groupLabel : stageDto.getGroups()) {
+                        StringLengthValidation.addIfTooLong(
+                                validations,
+                                "stages[" + stageIndex + "].groups[" + groupIndex + "]",
+                                groupLabel,
+                                STAGE_GROUP_LABEL_MAX_LEN);
+                        groupIndex++;
+                    }
+                }
+                stageIndex++;
+            }
+        }
+        return validations.isEmpty() ? null : StringLengthValidation.failure(validations);
     }
 
     private Uni<Void> upsertStages(Mutiny.Session session, Tournament tournament, List<StageUpdateDto> stageDtos) {

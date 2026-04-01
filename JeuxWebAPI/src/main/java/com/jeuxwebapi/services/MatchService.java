@@ -7,6 +7,9 @@ import com.jeuxwebapi.models.MatchDto;
 import com.jeuxwebapi.models.MatchUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
+import com.jeuxwebapi.results.Validation;
+import com.jeuxwebapi.services.validations.ApplicationScopedDBContextInfoService;
+import com.jeuxwebapi.services.validations.StringLengthValidation;
 import com.jeuxwebapi.util.QueryUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,12 +24,15 @@ import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class MatchService {
     @Inject
     Mutiny.SessionFactory sessionFactory;
+    @Inject
+    ApplicationScopedDBContextInfoService dbContextInfoService;
 
     public Uni<ServiceListResult<MatchDto>> findMatches(
             Long leagueId,
@@ -111,6 +117,10 @@ public class MatchService {
     }
 
     public Uni<ServiceDataResult<MatchDto>> createMatch(MatchCreateDto createDto) {
+        ServiceDataResult<MatchDto> validation = validateMatchCreateUpdate(createDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> {
             Match match = new Match();
             match.setTour(createDto.getTour());
@@ -138,6 +148,10 @@ public class MatchService {
     }
 
     public Uni<ServiceDataResult<MatchDto>> updateMatch(MatchUpdateDto updateDto) {
+        ServiceDataResult<MatchDto> validation = validateMatchCreateUpdate(updateDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> session.find(Match.class, updateDto.getId())
                 .chain(match -> {
                     ServiceDataResult<MatchDto> result = new ServiceDataResult<>();
@@ -186,6 +200,16 @@ public class MatchService {
                                 return result;
                             });
                 }));
+    }
+
+    private ServiceDataResult<MatchDto> validateMatchCreateUpdate(MatchCreateDto dto) {
+        List<Validation> validations = new ArrayList<>();
+        Map<String, Integer> lengths = dbContextInfoService.getStringFieldLengths(Match.class);
+        StringLengthValidation.addIfTooLong(validations, "round", dto.getRound(), lengths, "Round");
+        StringLengthValidation.addIfTooLong(validations, "city", dto.getCity(), lengths, "City");
+        StringLengthValidation.addIfTooLong(validations, "stadium", dto.getStadium(), lengths, "Stadium");
+        StringLengthValidation.addIfTooLong(validations, "group", dto.getGroup(), lengths, "Group");
+        return validations.isEmpty() ? null : StringLengthValidation.failure(validations);
     }
 
     private Uni<Integer> countMatches(

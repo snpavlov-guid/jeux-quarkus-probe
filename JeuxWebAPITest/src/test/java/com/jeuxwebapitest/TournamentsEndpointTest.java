@@ -1,8 +1,11 @@
 package com.jeuxwebapitest;
 
+import static com.jeuxwebapitest.util.ValidationTestSupport.expectedTooLongMessage;
+import static com.jeuxwebapitest.util.ValidationTestSupport.longerThan;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -339,6 +342,100 @@ public class TournamentsEndpointTest {
                 .body("items.size()", equalTo(0))
                 .body("total", equalTo(0))
                 .body("message", equalTo("Сущность 'Tournament' с id: -1 не найдена!"));
+    }
+
+    @Test
+    public void createTournamentReturnsValidationErrorWhenNameExceedsColumnLength() {
+        Integer leagueId = authorized()
+                .contentType("application/json")
+                .body(Map.of("name", "League For Tournament Validation"))
+                .when()
+                .post("/api/q/v1/leagues/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.id");
+
+        try {
+            authorized()
+                    .contentType("application/json")
+                    .body(Map.of(
+                            "name", longerThan(128),
+                            "stYear", 2024,
+                            "fnYear", 2025,
+                            "leagueId", leagueId,
+                            "stages", List.of()
+                    ))
+                    .when()
+                    .post("/api/q/v1/tournaments/create")
+                    .then()
+                    .statusCode(200)
+                    .body("result", equalTo(false))
+                    .body("message", equalTo("Ошибка валидации"))
+                    .body("validations", hasSize(1))
+                    .body("validations[0].property", equalTo("name"))
+                    .body("validations[0].message", equalTo(expectedTooLongMessage(128)));
+        } finally {
+            authorized()
+                    .contentType("application/json")
+                    .body("{}")
+                    .when()
+                    .post("/api/q/v1/leagues/delete/" + leagueId)
+                    .then()
+                    .statusCode(200);
+        }
+    }
+
+    @Test
+    public void createTournamentReturnsValidationErrorWhenStageGroupLabelExceedsColumnLength() {
+        Integer leagueId = authorized()
+                .contentType("application/json")
+                .body(Map.of("name", "League For Stage Group Validation"))
+                .when()
+                .post("/api/q/v1/leagues/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.id");
+
+        try {
+            authorized()
+                    .contentType("application/json")
+                    .body(Map.of(
+                            "name", "Tournament Ok Name",
+                            "stYear", 2024,
+                            "fnYear", 2025,
+                            "leagueId", leagueId,
+                            "stages", List.of(
+                                    Map.of(
+                                            "name", "Этап",
+                                            "order", 1,
+                                            "leagueId", leagueId,
+                                            "stageType", "REGULAR",
+                                            "groups", List.of(longerThan(32))
+                                    )
+                            )
+                    ))
+                    .when()
+                    .post("/api/q/v1/tournaments/create")
+                    .then()
+                    .statusCode(200)
+                    .body("result", equalTo(false))
+                    .body("message", equalTo("Ошибка валидации"))
+                    .body("validations", hasSize(1))
+                    .body("validations[0].property", equalTo("stages[0].groups[0]"))
+                    .body("validations[0].message", equalTo(expectedTooLongMessage(32)));
+        } finally {
+            authorized()
+                    .contentType("application/json")
+                    .body("{}")
+                    .when()
+                    .post("/api/q/v1/leagues/delete/" + leagueId)
+                    .then()
+                    .statusCode(200);
+        }
     }
 
 }

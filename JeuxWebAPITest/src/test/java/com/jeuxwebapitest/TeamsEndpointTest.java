@@ -1,8 +1,11 @@
 package com.jeuxwebapitest;
 
+import static com.jeuxwebapitest.util.ValidationTestSupport.expectedTooLongMessage;
+import static com.jeuxwebapitest.util.ValidationTestSupport.longerThan;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -144,6 +147,95 @@ public class TeamsEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id));
+    }
+
+    @Test
+    public void createTeamReturnsValidationErrorWhenNameExceedsColumnLength() {
+        authorized()
+                .contentType("application/json")
+                .body(Map.of(
+                        "name", longerThan(128),
+                        "shortName", "AB",
+                        "city", "c",
+                        "logoUrl", "http://u"
+                ))
+                .when()
+                .post("/api/q/v1/teams/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(false))
+                .body("message", equalTo("Ошибка валидации"))
+                .body("validations", hasSize(1))
+                .body("validations[0].property", equalTo("name"))
+                .body("validations[0].message", equalTo(expectedTooLongMessage(128)));
+    }
+
+    @Test
+    public void createTeamReturnsValidationErrorWhenShortNameExceedsColumnLength() {
+        authorized()
+                .contentType("application/json")
+                .body(Map.of(
+                        "name", "Ok",
+                        "shortName", longerThan(6),
+                        "city", "c",
+                        "logoUrl", "http://u"
+                ))
+                .when()
+                .post("/api/q/v1/teams/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(false))
+                .body("message", equalTo("Ошибка валидации"))
+                .body("validations", hasSize(1))
+                .body("validations[0].property", equalTo("shortName"))
+                .body("validations[0].message", equalTo(expectedTooLongMessage(6)));
+    }
+
+    @Test
+    public void updateTeamReturnsValidationErrorWhenCityExceedsColumnLength() {
+        Integer id = authorized()
+                .contentType("application/json")
+                .body(Map.of(
+                        "name", "V Team",
+                        "shortName", "VT",
+                        "city", "c",
+                        "logoUrl", "http://u"
+                ))
+                .when()
+                .post("/api/q/v1/teams/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.id");
+
+        try {
+            authorized()
+                    .contentType("application/json")
+                    .body(Map.of(
+                            "id", id,
+                            "name", "V Team",
+                            "shortName", "VT",
+                            "city", longerThan(128),
+                            "logoUrl", "http://u"
+                    ))
+                    .when()
+                    .post("/api/q/v1/teams/update/" + id)
+                    .then()
+                    .statusCode(200)
+                    .body("result", equalTo(false))
+                    .body("message", equalTo("Ошибка валидации"))
+                    .body("validations[0].property", equalTo("city"))
+                    .body("validations[0].message", equalTo(expectedTooLongMessage(128)));
+        } finally {
+            authorized()
+                    .contentType("application/json")
+                    .body("{}")
+                    .when()
+                    .post("/api/q/v1/teams/delete/" + id)
+                    .then()
+                    .statusCode(200);
+        }
     }
 
 }

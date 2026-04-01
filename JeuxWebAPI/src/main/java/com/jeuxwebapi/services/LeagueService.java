@@ -6,6 +6,9 @@ import com.jeuxwebapi.models.LeagueDto;
 import com.jeuxwebapi.models.LeagueUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
+import com.jeuxwebapi.results.Validation;
+import com.jeuxwebapi.services.validations.ApplicationScopedDBContextInfoService;
+import com.jeuxwebapi.services.validations.StringLengthValidation;
 import com.jeuxwebapi.util.QueryUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,12 +19,15 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class LeagueService {
     @Inject
     Mutiny.SessionFactory sessionFactory;
+    @Inject
+    ApplicationScopedDBContextInfoService dbContextInfoService;
 
     public Uni<ServiceListResult<LeagueDto>> findLeagues(String name, Integer skip, Integer size, String order) {
         return sessionFactory.withSession(session -> {
@@ -72,6 +78,10 @@ public class LeagueService {
     }
 
     public Uni<ServiceDataResult<LeagueDto>> createLeague(LeagueCreateDto createDto) {
+        ServiceDataResult<LeagueDto> validation = validateLeagueCreateUpdate(createDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> {
             League league = new League();
             league.setName(createDto.getName());
@@ -87,6 +97,10 @@ public class LeagueService {
     }
 
     public Uni<ServiceDataResult<LeagueDto>> updateLeague(LeagueUpdateDto updateDto) {
+        ServiceDataResult<LeagueDto> validation = validateLeagueCreateUpdate(updateDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> session.find(League.class, updateDto.getId())
                 .chain(league -> {
                     ServiceDataResult<LeagueDto> result = new ServiceDataResult<>();
@@ -136,6 +150,13 @@ public class LeagueService {
         }
         return session.createQuery(cq).getSingleResult()
                 .map(total -> total == null ? 0 : total.intValue());
+    }
+
+    private ServiceDataResult<LeagueDto> validateLeagueCreateUpdate(LeagueCreateDto dto) {
+        List<Validation> validations = new ArrayList<>();
+        Map<String, Integer> lengths = dbContextInfoService.getStringFieldLengths(League.class);
+        StringLengthValidation.addIfTooLong(validations, "name", dto.getName(), lengths, "Name");
+        return validations.isEmpty() ? null : StringLengthValidation.failure(validations);
     }
 
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<League> root, String name) {

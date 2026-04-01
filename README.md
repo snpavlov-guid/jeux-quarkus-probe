@@ -78,7 +78,7 @@ mvn -pl JeuxDBContextTest clean test
 
 **Сборка**
 ```
-mvn -pl JeuxWebAPI clean package
+mvn -pl JeuxWebAPI clean package -am
 ```
 
 ## Аутентификация

@@ -1,8 +1,11 @@
 package com.jeuxwebapitest;
 
+import static com.jeuxwebapitest.util.ValidationTestSupport.expectedTooLongMessage;
+import static com.jeuxwebapitest.util.ValidationTestSupport.longerThan;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -141,6 +144,58 @@ public class LeaguesEndpointTest {
                 .get("/api/q/v1/leagues/rpl")
                 .then()
                 .statusCode(200);
+    }
+
+    @Test
+    public void createLeagueReturnsValidationErrorWhenNameExceedsColumnLength() {
+        authorized()
+                .contentType("application/json")
+                .body(Map.of("name", longerThan(128)))
+                .when()
+                .post("/api/q/v1/leagues/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(false))
+                .body("message", equalTo("Ошибка валидации"))
+                .body("validations", hasSize(1))
+                .body("validations[0].property", equalTo("name"))
+                .body("validations[0].message", equalTo(expectedTooLongMessage(128)));
+    }
+
+    @Test
+    public void updateLeagueReturnsValidationErrorWhenNameExceedsColumnLength() {
+        Integer id = authorized()
+                .contentType("application/json")
+                .body(Map.of("name", "League For Length Test"))
+                .when()
+                .post("/api/q/v1/leagues/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.id");
+
+        try {
+            authorized()
+                    .contentType("application/json")
+                    .body(Map.of("id", id, "name", longerThan(128)))
+                    .when()
+                    .post("/api/q/v1/leagues/update/" + id)
+                    .then()
+                    .statusCode(200)
+                    .body("result", equalTo(false))
+                    .body("message", equalTo("Ошибка валидации"))
+                    .body("validations[0].property", equalTo("name"))
+                    .body("validations[0].message", equalTo(expectedTooLongMessage(128)));
+        } finally {
+            authorized()
+                    .contentType("application/json")
+                    .body("{}")
+                    .when()
+                    .post("/api/q/v1/leagues/delete/" + id)
+                    .then()
+                    .statusCode(200);
+        }
     }
 
 }

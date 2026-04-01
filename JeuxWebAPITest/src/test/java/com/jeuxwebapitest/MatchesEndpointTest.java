@@ -1,9 +1,12 @@
 package com.jeuxwebapitest;
 
+import static com.jeuxwebapitest.util.ValidationTestSupport.expectedTooLongMessage;
+import static com.jeuxwebapitest.util.ValidationTestSupport.longerThan;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -14,6 +17,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -229,6 +233,126 @@ public class MatchesEndpointTest {
                 .statusCode(200)
                 .body("result", equalTo(true))
                 .body("data.id", equalTo(id));
+    }
+
+    @Test
+    public void createMatchReturnsValidationErrorWhenRoundExceedsColumnLength() {
+        List<Map<String, Object>> items = authorized()
+                .when()
+                .get("/api/q/v1/matches")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("items");
+
+        Assumptions.assumeFalse(items == null || items.isEmpty());
+
+        Map<String, Object> base = items.get(0);
+        Number leagueId = (Number) base.get("leagueId");
+        Number tournamentId = (Number) base.get("tournamentId");
+        Number stageId = (Number) base.get("stageId");
+        Number hTeamId = (Number) base.get("hTeamId");
+        Number gTeamId = (Number) base.get("gTeamId");
+        Assumptions.assumeFalse(
+                leagueId == null || tournamentId == null || stageId == null || hTeamId == null || gTeamId == null);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("tour", 1);
+        body.put("round", longerThan(16));
+        body.put("hScore", 0);
+        body.put("gScore", 0);
+        body.put("group", "G");
+        body.put("leagueId", leagueId.longValue());
+        body.put("tournamentId", tournamentId.longValue());
+        body.put("stageId", stageId.longValue());
+        body.put("hTeamId", hTeamId.longValue());
+        body.put("gTeamId", gTeamId.longValue());
+
+        authorized()
+                .contentType("application/json")
+                .body(body)
+                .when()
+                .post("/api/q/v1/matches/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(false))
+                .body("message", equalTo("Ошибка валидации"))
+                .body("validations", hasSize(1))
+                .body("validations[0].property", equalTo("round"))
+                .body("validations[0].message", equalTo(expectedTooLongMessage(16)));
+    }
+
+    @Test
+    public void updateMatchReturnsValidationErrorWhenGroupExceedsColumnLength() {
+        List<Map<String, Object>> items = authorized()
+                .when()
+                .get("/api/q/v1/matches")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("items");
+
+        Assumptions.assumeFalse(items == null || items.isEmpty());
+
+        Map<String, Object> base = items.get(0);
+        Number leagueId = (Number) base.get("leagueId");
+        Number tournamentId = (Number) base.get("tournamentId");
+        Number stageId = (Number) base.get("stageId");
+        Number hTeamId = (Number) base.get("hTeamId");
+        Number gTeamId = (Number) base.get("gTeamId");
+        Assumptions.assumeFalse(
+                leagueId == null || tournamentId == null || stageId == null || hTeamId == null || gTeamId == null);
+
+        Map<String, Object> createBody = new HashMap<>();
+        createBody.put("tour", 1);
+        createBody.put("round", "R1");
+        createBody.put("hScore", 0);
+        createBody.put("gScore", 0);
+        createBody.put("group", "G1");
+        createBody.put("leagueId", leagueId.longValue());
+        createBody.put("tournamentId", tournamentId.longValue());
+        createBody.put("stageId", stageId.longValue());
+        createBody.put("hTeamId", hTeamId.longValue());
+        createBody.put("gTeamId", gTeamId.longValue());
+
+        Integer id = authorized()
+                .contentType("application/json")
+                .body(createBody)
+                .when()
+                .post("/api/q/v1/matches/create")
+                .then()
+                .statusCode(200)
+                .body("result", equalTo(true))
+                .extract()
+                .path("data.id");
+
+        try {
+            Map<String, Object> updateBody = new HashMap<>(createBody);
+            updateBody.put("id", id);
+            updateBody.put("group", longerThan(32));
+
+            authorized()
+                    .contentType("application/json")
+                    .body(updateBody)
+                    .when()
+                    .post("/api/q/v1/matches/update/" + id)
+                    .then()
+                    .statusCode(200)
+                    .body("result", equalTo(false))
+                    .body("message", equalTo("Ошибка валидации"))
+                    .body("validations[0].property", equalTo("group"))
+                    .body("validations[0].message", equalTo(expectedTooLongMessage(32)));
+        } finally {
+            authorized()
+                    .contentType("application/json")
+                    .body("{}")
+                    .when()
+                    .post("/api/q/v1/matches/delete/" + id)
+                    .then()
+                    .statusCode(200);
+        }
     }
 
 }

@@ -6,6 +6,9 @@ import com.jeuxwebapi.models.TeamDto;
 import com.jeuxwebapi.models.TeamUpdateDto;
 import com.jeuxwebapi.results.ServiceDataResult;
 import com.jeuxwebapi.results.ServiceListResult;
+import com.jeuxwebapi.results.Validation;
+import com.jeuxwebapi.services.validations.ApplicationScopedDBContextInfoService;
+import com.jeuxwebapi.services.validations.StringLengthValidation;
 import com.jeuxwebapi.util.QueryUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,12 +19,15 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.hibernate.reactive.mutiny.Mutiny;
 
 @ApplicationScoped
 public class TeamService {
     @Inject
     Mutiny.SessionFactory sessionFactory;
+    @Inject
+    ApplicationScopedDBContextInfoService dbContextInfoService;
 
     public Uni<ServiceListResult<TeamDto>> findTeams(String name, Integer skip, Integer size, String order) {
         return sessionFactory.withSession(session -> {
@@ -72,6 +78,10 @@ public class TeamService {
     }
 
     public Uni<ServiceDataResult<TeamDto>> createTeam(TeamCreateDto createDto) {
+        ServiceDataResult<TeamDto> validation = validateTeamCreateUpdate(createDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> {
             Team team = new Team();
             team.setName(createDto.getName());
@@ -90,6 +100,10 @@ public class TeamService {
     }
 
     public Uni<ServiceDataResult<TeamDto>> updateTeam(TeamUpdateDto updateDto) {
+        ServiceDataResult<TeamDto> validation = validateTeamCreateUpdate(updateDto);
+        if (validation != null) {
+            return Uni.createFrom().item(validation);
+        }
         return sessionFactory.withTransaction((session, tx) -> session.find(Team.class, updateDto.getId())
                 .chain(team -> {
                     ServiceDataResult<TeamDto> result = new ServiceDataResult<>();
@@ -142,6 +156,16 @@ public class TeamService {
         }
         return session.createQuery(cq).getSingleResult()
                 .map(total -> total == null ? 0 : total.intValue());
+    }
+
+    private ServiceDataResult<TeamDto> validateTeamCreateUpdate(TeamCreateDto dto) {
+        List<Validation> validations = new ArrayList<>();
+        Map<String, Integer> lengths = dbContextInfoService.getStringFieldLengths(Team.class);
+        StringLengthValidation.addIfTooLong(validations, "name", dto.getName(), lengths, "Name");
+        StringLengthValidation.addIfTooLong(validations, "shortName", dto.getShortName(), lengths, "ShortName");
+        StringLengthValidation.addIfTooLong(validations, "city", dto.getCity(), lengths, "City");
+        StringLengthValidation.addIfTooLong(validations, "logoUrl", dto.getLogoUrl(), lengths, "LogoUrl");
+        return validations.isEmpty() ? null : StringLengthValidation.failure(validations);
     }
 
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Team> root, String name) {
